@@ -1,0 +1,43 @@
+name: opportunitygenie_ai
+description: "OpportunityGenie AI — AI-powered scholarship and higher education platform"
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: '>=3.3.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+
+  # networking
+  http: ^1.2.2
+
+  # state management
+  provider: ^6.1.2
+
+  # secure token storage
+  flutter_secure_storage: ^9.2.2
+
+  # fonts — Inter is used as an open-source, freely-licensable
+  # substitute for SF Pro (Apple's system font can't be bundled
+  # outside Apple's own platforms). Visually it's the closest widely
+  # available match to the reference design.
+  google_fonts: ^6.2.1
+
+  # date formatting, locale-aware number formatting
+  intl: ^0.19.0
+
+  # opening the official scholarship application links
+  url_launcher: ^6.3.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true

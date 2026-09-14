@@ -1,0 +1,29 @@
+{
+  "expo": {
+    "name": "OpportunityGenie AI",
+    "slug": "opportunitygenie-ai",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "backgroundColor": "#EEF1FB"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.opportunitygenie.ai"
+    },
+    "android": {
+      "package": "com.opportunitygenie.ai",
+      "adaptiveIcon": {
+        "backgroundColor": "#EEF1FB"
+      }
+    },
+    "web": {
+      "bundler": "metro"
+    },
+    "extra": {
+      "apiBaseUrl": "http://localhost:8000"
+    }
+  }
+}

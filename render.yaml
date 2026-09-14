@@ -1,0 +1,42 @@
+# Render Blueprint — lets Render provision the API + database together.
+# Deploy: push this repo to GitHub, then in Render click
+# New > Blueprint, point it at your repo, and Render reads this file.
+#
+# After it deploys, you still need to set ANTHROPIC_API_KEY yourself
+# (marked sync: false below) — Render won't invent that for you.
+
+services:
+  - type: web
+    name: opportunitygenie-api
+    runtime: python
+    plan: starter
+    rootDir: backend
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: opportunitygenie-db
+          property: connectionString
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: ANTHROPIC_MODEL
+        value: claude-sonnet-4-6
+      - key: ALLOWED_ORIGINS
+        value: "*"
+      - key: ENVIRONMENT
+        value: production
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: STRIPE_PRICE_ID_PREMIUM
+        sync: false
+
+databases:
+  - name: opportunitygenie-db
+    plan: starter
+    databaseName: opportunitygenie
+    user: og_user
