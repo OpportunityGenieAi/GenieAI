@@ -75,9 +75,3 @@ def forgot_password_verify(payload: ForgotPasswordVerify, db: Session = Depends(
 @router.get("/me", response_model=UserOut)
 def me(current_user: User = Depends(get_current_user)):
     return UserOut.model_validate(current_user)
-
-
-@router.get("/debug-list-users-temp")
-def debug_list_users_temp(db: Session = Depends(get_db)):
-    users = db.query(User).all()
-    return [{"name": u.name, "email": u.email, "is_admin": u.is_admin} for u in users]
