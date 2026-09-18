@@ -13,6 +13,7 @@ export const colors = {
   greenTint: '#DCFCE7',
   amber: '#D97706',
   amberTint: '#FEF3C7',
+  gold: '#B8860B',
   red: '#DC2626',
   redTint: '#FEE2E2',
   grayTint: '#F1F2F6',

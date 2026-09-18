@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
 import {
@@ -12,6 +12,7 @@ import {
 } from '@expo-google-fonts/inter';
 
 import { colors, fonts } from './src/theme/colors';
+import { AnimatedSplashScreen } from './src/components/AnimatedSplashScreen';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
 import { ProfileProvider } from './src/context/ProfileContext';
 import { ScholarshipProvider } from './src/context/ScholarshipContext';
@@ -26,12 +27,7 @@ function SessionGate({ children }: { children: React.ReactNode }) {
   }, []);
 
   if (loading) {
-    return (
-      <View style={styles.splash}>
-        <Text style={styles.splashText}>OpportunityGenie AI</Text>
-        <ActivityIndicator color={colors.blue} style={{ marginTop: 16 }} />
-      </View>
-    );
+    return <View style={styles.splash} />;
   }
   return <>{children}</>;
 }
@@ -40,6 +36,7 @@ export default function App() {
   const [fontsLoaded] = useFonts({
     Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold, Inter_800ExtraBold,
   });
+  const [introFinished, setIntroFinished] = useState(false);
 
   if (!fontsLoaded) {
     return (
@@ -60,6 +57,7 @@ export default function App() {
                 <RootNavigator />
               </NavigationContainer>
             </SessionGate>
+            {!introFinished && <AnimatedSplashScreen onFinish={() => setIntroFinished(true)} />}
           </TrackerProvider>
         </ScholarshipProvider>
       </ProfileProvider>
@@ -68,6 +66,5 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  splash: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
-  splashText: { fontFamily: fonts.extraBold, fontSize: 18, color: colors.ink },
+  splash: { flex: 1, backgroundColor: colors.bg },
 });

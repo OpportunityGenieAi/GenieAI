@@ -4,8 +4,11 @@
     "slug": "opportunitygenie-ai",
     "version": "0.1.0",
     "orientation": "portrait",
+    "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
       "backgroundColor": "#EEF1FB"
     },
     "assetBundlePatterns": ["**/*"],
@@ -16,14 +19,16 @@
     "android": {
       "package": "com.opportunitygenie.ai",
       "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#EEF1FB"
       }
     },
     "web": {
-      "bundler": "metro"
+      "bundler": "metro",
+      "favicon": "./assets/favicon.png"
     },
     "extra": {
-      "apiBaseUrl": "http://localhost:8000"
+      "apiBaseUrl": "https://opportunitygenie-api-sfl8.onrender.com"
     }
   }
 }
