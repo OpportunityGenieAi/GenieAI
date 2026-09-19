@@ -100,6 +100,24 @@ class AcademicProfile(Base):
     user = relationship("User", back_populates="academic_profile")
 
 
+class AppSetting(Base):
+    """
+    Admin-editable key/value configuration — lets the admin change things
+    like AdMob ad unit IDs or third-party API keys from inside the app
+    itself, without needing access to Render's dashboard.
+
+    Ad unit IDs read from here take effect immediately (the app fetches
+    them at runtime). Anything baked into a native build (like the AdMob
+    App ID itself) still needs a real rebuild to change — this table
+    can't override that, only runtime-readable values.
+    """
+    __tablename__ = "app_settings"
+
+    key = Column(String, primary_key=True)
+    value = Column(Text, nullable=True)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
 class TrackerEntry(Base):
     __tablename__ = "tracker_entries"
 

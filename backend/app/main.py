@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.database import Base, SessionLocal, engine
 from app.models import Scholarship
-from app.routers import advisor, auth, billing, profile, scholarships, tracker
+from app.routers import advisor, auth, billing, profile, scholarships, settings, tracker
 from app.seed_data import SEED_SCHOLARSHIPS
 
 app = FastAPI(title=settings.APP_NAME, version="0.1.0")
@@ -23,6 +23,7 @@ app.include_router(profile.router)
 app.include_router(tracker.router)
 app.include_router(advisor.router)
 app.include_router(billing.router)
+app.include_router(settings.router)
 
 
 @app.on_event("startup")

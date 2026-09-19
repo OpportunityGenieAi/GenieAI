@@ -5,19 +5,27 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.database import get_db
 from app.deps import get_current_user
-from app.models import AcademicProfile, GpaProfile, Scholarship, User
+from app.models import AcademicProfile, AppSetting, GpaProfile, Scholarship, User
 from app.schemas import AdvisorResponse
 from app.services.match_engine import compute_match_score
 
 router = APIRouter(prefix="/advisor", tags=["advisor"])
 
 
+def _resolve_anthropic_key(db: Session) -> str:
+    override = db.query(AppSetting).filter(AppSetting.key == "anthropic_api_key_override").first()
+    if override and override.value:
+        return override.value
+    return settings.ANTHROPIC_API_KEY
+
+
 @router.post("/recommend", response_model=AdvisorResponse)
 def get_recommendation(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    if not settings.ANTHROPIC_API_KEY:
+    api_key = _resolve_anthropic_key(db)
+    if not api_key:
         raise HTTPException(
             status_code=503,
-            detail="AI advisor isn't configured yet — set ANTHROPIC_API_KEY on the server."
+            detail="AI advisor isn't configured yet — set ANTHROPIC_API_KEY on the server or in Admin > App Settings."
         )
 
     gpa = db.query(GpaProfile).filter(GpaProfile.user_id == current_user.id).first()
@@ -54,7 +62,7 @@ second person, encouraging but realistic."""
             response = client.post(
                 "https://api.anthropic.com/v1/messages",
                 headers={
-                    "x-api-key": settings.ANTHROPIC_API_KEY,
+                    "x-api-key": api_key,
                     "anthropic-version": "2023-06-01",
                     "content-type": "application/json",
                 },

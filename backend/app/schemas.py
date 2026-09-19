@@ -153,3 +153,16 @@ class AdvisorResponse(BaseModel):
 # ---------- billing ----------
 class CheckoutSessionResponse(BaseModel):
     checkout_url: str
+
+
+# ---------- app settings (admin-managed config) ----------
+class AppSettingIn(BaseModel):
+    value: str
+
+
+class AppSettingOut(BaseModel):
+    key: str
+    value: Optional[str] = None
+
+    class Config:
+        from_attributes = True
