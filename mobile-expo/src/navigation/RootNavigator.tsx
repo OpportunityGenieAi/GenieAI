@@ -6,6 +6,7 @@ import SignupScreen from '../screens/auth/SignupScreen';
 import ForgotPasswordScreen from '../screens/auth/ForgotPasswordScreen';
 import GpaConverterScreen from '../screens/profile/GpaConverterScreen';
 import { AdminScreen, ScholarshipFormScreen } from '../screens/admin/AdminScreen';
+import AppSettingsScreen from '../screens/admin/AppSettingsScreen';
 import { colors } from '../theme/colors';
 
 const Stack = createNativeStackNavigator();
@@ -28,6 +29,7 @@ export function RootNavigator() {
       />
       <Stack.Screen name="GpaConverter" component={GpaConverterScreen} />
       <Stack.Screen name="Admin" component={AdminScreen} />
+      <Stack.Screen name="AppSettings" component={AppSettingsScreen} />
       <Stack.Screen name="ScholarshipForm" component={ScholarshipFormScreen} />
     </Stack.Navigator>
   );

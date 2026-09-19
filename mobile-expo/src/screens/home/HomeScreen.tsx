@@ -7,6 +7,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useScholarships } from '../../context/ScholarshipContext';
 import { useTracker } from '../../context/TrackerContext';
 import { ScholarshipCard } from '../../components/ScholarshipCard';
+import { AdBanner } from '../../components/AdBanner';
 
 const REGIONS = ['All', 'UK', 'USA', 'Europe', 'Africa', 'Asia', 'Other'];
 
@@ -96,6 +97,7 @@ export default function HomeScreen() {
           </ScrollView>
 
           {scholarships.loading && <ActivityIndicator style={{ marginVertical: 20 }} color={colors.blue} />}
+          <AdBanner />
         </View>
       }
       renderItem={({ item }) => (

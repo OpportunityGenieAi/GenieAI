@@ -14,6 +14,7 @@ import {
 import { colors, fonts } from './src/theme/colors';
 import { AnimatedSplashScreen } from './src/components/AnimatedSplashScreen';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
+import { PublicSettingsProvider } from './src/context/PublicSettingsContext';
 import { ProfileProvider } from './src/context/ProfileContext';
 import { ScholarshipProvider } from './src/context/ScholarshipContext';
 import { TrackerProvider } from './src/context/TrackerContext';
@@ -47,6 +48,7 @@ export default function App() {
   }
 
   return (
+    <PublicSettingsProvider>
     <AuthProvider>
       <ProfileProvider>
         <ScholarshipProvider>
@@ -62,6 +64,7 @@ export default function App() {
         </ScholarshipProvider>
       </ProfileProvider>
     </AuthProvider>
+    </PublicSettingsProvider>
   );
 }
 

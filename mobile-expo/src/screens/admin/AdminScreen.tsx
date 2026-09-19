@@ -43,6 +43,9 @@ export function AdminScreen() {
       <Pressable style={styles.primaryBtn} onPress={() => navigation.navigate('ScholarshipForm', {})}>
         <Text style={styles.primaryBtnText}>+ Add scholarship</Text>
       </Pressable>
+      <Pressable style={styles.outlineBtnFull} onPress={() => navigation.navigate('AppSettings')}>
+        <Text style={styles.outlineBtnFullText}>App Settings (AdMob, API keys)</Text>
+      </Pressable>
 
       {loading ? <ActivityIndicator color={colors.blue} style={{ marginVertical: 20 }} /> : items.map((s) => (
         <View key={s.id} style={styles.row}>
@@ -151,6 +154,8 @@ const styles = StyleSheet.create({
   sub: { fontFamily: fonts.regular, fontSize: 13, color: colors.inkSoft, marginBottom: 16 },
   primaryBtn: { backgroundColor: colors.blue, borderRadius: 12, paddingVertical: 13, alignItems: 'center', marginBottom: 16 },
   primaryBtnText: { fontFamily: fonts.bold, fontSize: 14, color: '#fff' },
+  outlineBtnFull: { borderWidth: 1, borderColor: colors.line, borderRadius: 12, paddingVertical: 12, alignItems: 'center', marginBottom: 16 },
+  outlineBtnFullText: { fontFamily: fonts.bold, fontSize: 13.5, color: colors.ink },
   row: {
     flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line,
     borderRadius: 12, padding: 14, marginBottom: 10, gap: 6,

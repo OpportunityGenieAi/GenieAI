@@ -3,6 +3,7 @@ import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, fonts } from '../theme/colors';
 import { Scholarship } from '../api/scholarships';
+import { useInterstitialAd } from '../hooks/useInterstitialAd';
 
 function matchColor(tier?: string | null): string {
   if (tier === 'green') return colors.green;
@@ -19,6 +20,12 @@ export function ScholarshipCard({
   showMatch?: boolean;
   onToggleBookmark?: () => void;
 }) {
+  const { showIfFirstTimeThisSession } = useInterstitialAd();
+
+  const handleApply = () => {
+    showIfFirstTimeThisSession(); // fires at most once per app session; no-op otherwise
+    Linking.openURL(scholarship.official_link);
+  };
   return (
     <View style={styles.card}>
       <View style={styles.topRow}>
@@ -68,7 +75,7 @@ export function ScholarshipCard({
         </View>
       )}
 
-      <Pressable style={styles.applyBtn} onPress={() => Linking.openURL(scholarship.official_link)}>
+      <Pressable style={styles.applyBtn} onPress={handleApply}>
         <Text style={styles.applyBtnText}>Apply on official site</Text>
       </Pressable>
     </View>
