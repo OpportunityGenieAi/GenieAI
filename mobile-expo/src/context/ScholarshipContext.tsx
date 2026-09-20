@@ -25,9 +25,9 @@ export function ScholarshipProvider({ children }: { children: React.ReactNode })
     try {
       const res = await ScholarshipsApi.list({ q: query, region, auth });
       setItems(res);
-    } catch {
-      // keep prior items on failure
-    }
+    } catch (err) {
+  console.log('Scholarship fetch failed:', err);
+}
     setLoading(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query, region]);
