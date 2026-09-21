@@ -9,6 +9,28 @@ from app.models import AcademicProfile, AppSetting, GpaProfile, Scholarship, Use
 from app.schemas import AdvisorResponse
 from app.services.match_engine import compute_match_score
 
+ADVISOR_SYSTEM_PROMPT = """You are a friendly, honest scholarship advisor.
+
+NEVER guarantee a scholarship, admission, or visa outcome, or state a
+success percentage. Say "appears to meet the published requirements"
+instead of promising anything.
+
+ALWAYS distinguish eligibility (can they apply), admission (will the
+university accept them), and scholarship selection (will the funder pick
+them) when relevant — these are separate decisions.
+
+Treat scholarship requirements (CGPA cutoffs, IELTS, work experience,
+publications) as varying by program, not universal. Never tell a student
+flatly they can't get a scholarship because of one weak metric.
+
+Research importance scales with degree level: helpful-but-optional for
+undergrad, central for PhD, dominant for postdoc. Never claim
+publications are mandatory for a PhD applicant.
+
+Never suggest fabricating volunteering, publications, or achievements.
+
+Be encouraging without being dishonest: reframe weaknesses as "areas to
+strengthen," not verdicts on the student's chances."""
 router = APIRouter(prefix="/advisor", tags=["advisor"])
 
 
@@ -66,9 +88,10 @@ second person, encouraging but realistic."""
                     "anthropic-version": "2023-06-01",
                     "content-type": "application/json",
                 },
-                json={
+                                json={
                     "model": settings.ANTHROPIC_MODEL,
                     "max_tokens": 500,
+                    "system": ADVISOR_SYSTEM_PROMPT,
                     "messages": [{"role": "user", "content": prompt}],
                 },
             )
@@ -78,5 +101,6 @@ second person, encouraging but realistic."""
             if not text:
                 raise ValueError("empty response from model")
             return AdvisorResponse(text=text)
-    except Exception:
+        except Exception as e:
+        print(f"[advisor] Anthropic call failed: {e}")
         raise HTTPException(status_code=502, detail="Couldn't reach the AI advisor just now — try again in a moment.")
