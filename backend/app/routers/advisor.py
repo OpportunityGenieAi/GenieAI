@@ -1,3 +1,5 @@
+import logging
+
 import httpx
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -8,6 +10,8 @@ from app.deps import get_current_user
 from app.models import AcademicProfile, AppSetting, GpaProfile, Scholarship, User
 from app.schemas import AdvisorResponse
 from app.services.match_engine import compute_match_score
+
+logger = logging.getLogger(__name__)
 
 ADVISOR_SYSTEM_PROMPT = """You are a friendly, honest scholarship advisor.
 
@@ -49,7 +53,7 @@ def get_recommendation(db: Session = Depends(get_db), current_user: User = Depen
     if not api_key:
         raise HTTPException(
             status_code=503,
-            detail="AI advisor isn't configured yet — set ANTHROPIC_API_KEY on the server or in Admin > App Settings."
+            detail="AI advisor isn't configured yet — set ANTHROPIC_API_KEY on the server or in Admin > App Settings.",
         )
 
     gpa = db.query(GpaProfile).filter(GpaProfile.user_id == current_user.id).first()
@@ -60,12 +64,20 @@ def get_recommendation(db: Session = Depends(get_db), current_user: User = Depen
     scholarships = db.query(Scholarship).all()
     ranked = sorted(
         ({"s": s, "m": compute_match_score(s, gpa, academic)} for s in scholarships),
-        key=lambda x: x["m"]["score"], reverse=True,
+        key=lambda x: x["m"]["score"],
+        reverse=True,
     )
-    top_fits = "; ".join(f"{r['s'].name} ({r['m']['score']}% fit, needs {r['s'].level}, {r['s'].field})" for r in ranked[:4])
-    near_misses = "; ".join(f"{r['s'].name} ({r['m']['score']}%)" for r in ranked if 35 <= r["m"]["score"] < 70)
+    top_fits = "; ".join(
+        f"{r['s'].name} ({r['m']['score']}% fit, needs {r['s'].level}, {r['s'].field})"
+        for r in ranked[:4]
+    )
+    near_misses = "; ".join(
+        f"{r['s'].name} ({r['m']['score']}%)"
+        for r in ranked
+        if 35 <= r["m"]["score"] < 70
+    )
 
-    prompt = f"""You are a friendly, honest scholarship advisor. A student has this profile:
+    prompt = f"""A student has this profile:
 - Unified GPA: {gpa.gpa:.2f}/4.0 ({gpa.percent:.0f}% US-equivalent, ECTS {gpa.ects})
 - Seeking: {academic.level} in {academic.field or 'an unspecified field'}
 - Nationality: {academic.nationality or 'not specified'}
@@ -90,7 +102,7 @@ second person, encouraging but realistic."""
                     "anthropic-version": "2023-06-01",
                     "content-type": "application/json",
                 },
-                                json={
+                json={
                     "model": settings.ANTHROPIC_MODEL,
                     "max_tokens": 500,
                     "system": ADVISOR_SYSTEM_PROMPT,
@@ -103,6 +115,9 @@ second person, encouraging but realistic."""
             if not text:
                 raise ValueError("empty response from model")
             return AdvisorResponse(text=text)
-        except Exception as e:
-            print (f"[advisor] Anthropic call failed: {e}")
-            raise HTTPException(status_code=502, detail="Couldn't reach the AI advisor just now — try again in a moment.")
+    except Exception:
+        logger.exception("Anthropic call failed")
+        raise HTTPException(
+            status_code=502,
+            detail="Couldn't reach the AI advisor just now — try again in a moment.",
+        )
