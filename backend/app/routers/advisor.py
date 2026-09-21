@@ -31,6 +31,8 @@ Never suggest fabricating volunteering, publications, or achievements.
 
 Be encouraging without being dishonest: reframe weaknesses as "areas to
 strengthen," not verdicts on the student's chances."""
+
+
 router = APIRouter(prefix="/advisor", tags=["advisor"])
 
 
@@ -102,5 +104,5 @@ second person, encouraging but realistic."""
                 raise ValueError("empty response from model")
             return AdvisorResponse(text=text)
         except Exception as e:
-        print(f"[advisor] Anthropic call failed: {e}")
-        raise HTTPException(status_code=502, detail="Couldn't reach the AI advisor just now — try again in a moment.")
+            print (f"[advisor] Anthropic call failed: {e}")
+            raise HTTPException(status_code=502, detail="Couldn't reach the AI advisor just now — try again in a moment.")
