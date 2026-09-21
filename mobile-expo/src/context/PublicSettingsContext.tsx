@@ -2,9 +2,6 @@ import React, { createContext, useCallback, useContext, useEffect, useState } fr
 import { Platform } from 'react-native';
 import { SettingsApi } from '../api/settings';
 
-// Google's official TEST ad unit IDs — safe to ship, always return test ads,
-// and used as a fallback whenever an admin hasn't set a real one yet.
-// Replace these via Admin > App Settings once you have a real AdMob account.
 const TEST_BANNER_UNIT_ID = Platform.select({
   ios: 'ca-app-pub-3940256099942544/2934735716',
   android: 'ca-app-pub-3940256099942544/6300978111',
@@ -18,12 +15,14 @@ const TEST_INTERSTITIAL_UNIT_ID = Platform.select({
 })!;
 
 interface PublicSettingsValue {
+  adsEnabled: boolean;
   bannerUnitId: string;
   interstitialUnitId: string;
   usingTestAds: boolean;
 }
 
 const PublicSettingsContext = createContext<PublicSettingsValue>({
+  adsEnabled: false,
   bannerUnitId: TEST_BANNER_UNIT_ID,
   interstitialUnitId: TEST_INTERSTITIAL_UNIT_ID,
   usingTestAds: true,
@@ -31,6 +30,7 @@ const PublicSettingsContext = createContext<PublicSettingsValue>({
 
 export function PublicSettingsProvider({ children }: { children: React.ReactNode }) {
   const [value, setValue] = useState<PublicSettingsValue>({
+    adsEnabled: false,
     bannerUnitId: TEST_BANNER_UNIT_ID,
     interstitialUnitId: TEST_INTERSTITIAL_UNIT_ID,
     usingTestAds: true,
@@ -49,12 +49,13 @@ export function PublicSettingsProvider({ children }: { children: React.ReactNode
       const interstitialUnitId = map[interstitialKey] || TEST_INTERSTITIAL_UNIT_ID;
 
       setValue({
+        adsEnabled: map['ads_enabled'] === 'true',
         bannerUnitId,
         interstitialUnitId,
         usingTestAds: bannerUnitId === TEST_BANNER_UNIT_ID,
       });
     } catch {
-      // keep test-ad defaults on failure — never block the app over this
+      // keep ads-disabled defaults on failure
     }
   }, []);
 

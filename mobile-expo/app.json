@@ -37,7 +37,7 @@
       ]
     ],
     "extra": {
-      "apiBaseUrl": "https://opportunitygenie-api-sfl8.onrender.com"
+      "apiBaseUrl": "https://opportunitygenie-api-production-cee3.up.railway.app"
     }
   }
 }
