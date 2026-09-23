@@ -11,7 +11,9 @@
       "resizeMode": "contain",
       "backgroundColor": "#EEF1FB"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.opportunitygenie.ai"
@@ -29,7 +31,7 @@
     },
     "plugins": [
       [
-        "react-native-google-mobile-ads",
+        "./plugins/withGoogleMobileAds.js",
         {
           "androidAppId": "ca-app-pub-3940256099942544~3347511713",
           "iosAppId": "ca-app-pub-3940256099942544~1458002511"
@@ -37,7 +39,10 @@
       ]
     ],
     "extra": {
-      "apiBaseUrl": "https://opportunitygenie-api-production-cee3.up.railway.app"
+      "apiBaseUrl": "https://opportunitygenie.org",
+      "eas": {
+        "projectId": "9e4861f4-df2b-401b-b83f-f8ead4b5298e"
+      }
     }
   }
 }
