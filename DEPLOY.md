@@ -47,12 +47,12 @@ commands.
      billing endpoints just return a friendly "not configured yet" error
      until you're ready to charge people.
 6. Deploy. First deploy takes a few minutes. When it's done, Render
-   gives you a URL like `https://api.opportunitygenie.org`.
+   gives you a URL like `https://opportunitygenie.org`.
 
 ### 3. Confirm it's alive
 
 ```bash
-curl https://api.opportunitygenie.org/health
+curl https://opportunitygenie.org/health
 ```
 You should get back `{"status":"ok",...}`. If not, check the **Logs** tab
 on the Render service — the most common issue is a typo'd env var.
@@ -69,12 +69,12 @@ one real person an admin, and only after they've actually signed up.
 Signup now emails a confirmation code (see `SUPABASE_SETUP.md` first).
 Easiest is the app itself; via curl it is two calls:
 ```bash
-curl -X POST https://api.opportunitygenie.org/auth/signup \
+curl -X POST https://opportunitygenie.org/auth/signup \
   -H "Content-Type: application/json" \
   -d '{"name": "Your Name", "email": "you@yourdomain.com", "password": "choose-a-real-password"}'
 
 # check your inbox for the 6-digit code, then:
-curl -X POST https://api.opportunitygenie.org/auth/verify-email \
+curl -X POST https://opportunitygenie.org/auth/verify-email \
   -H "Content-Type: application/json" \
   -d '{"email": "you@yourdomain.com", "code": "123456"}'
 ```
@@ -115,7 +115,7 @@ drop it on Netlify — no app store, no waiting.
 
 ```bash
 cd mobile
-flutter build web --dart-define=API_BASE_URL=https://api.opportunitygenie.org
+flutter build web --dart-define=API_BASE_URL=https://opportunitygenie.org
 ```
 
 Go to [app.netlify.com/drop](https://app.netlify.com/drop) and drag in
@@ -140,7 +140,7 @@ around the identity verification and legal agreements involved.
 
 **iOS:**
 1. Apple Developer Program — $99/year, developer.apple.com/programs.
-2. `flutter build ipa --dart-define=API_BASE_URL=https://api.opportunitygenie.org`
+2. `flutter build ipa --dart-define=API_BASE_URL=https://opportunitygenie.org`
 3. Upload via Xcode or the Transporter app.
 4. Set up the listing in App Store Connect (screenshots, description,
    privacy policy URL — you'll need one; even a simple hosted page
@@ -149,7 +149,7 @@ around the identity verification and legal agreements involved.
 
 **Android:**
 1. Google Play Console — $25 one-time, play.google.com/console.
-2. `flutter build appbundle --dart-define=API_BASE_URL=https://api.opportunitygenie.org`
+2. `flutter build appbundle --dart-define=API_BASE_URL=https://opportunitygenie.org`
 3. Upload the `.aab` file to Play Console.
 4. Complete the store listing (same requirements: screenshots,
    description, privacy policy).
