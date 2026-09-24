@@ -4,6 +4,7 @@ import { MainTabs } from './MainTabs';
 import LoginScreen from '../screens/auth/LoginScreen';
 import SignupScreen from '../screens/auth/SignupScreen';
 import ForgotPasswordScreen from '../screens/auth/ForgotPasswordScreen';
+import VerifyEmailScreen from '../screens/auth/VerifyEmailScreen';
 import GpaConverterScreen from '../screens/profile/GpaConverterScreen';
 import { AdminScreen, ScholarshipFormScreen } from '../screens/admin/AdminScreen';
 import AppSettingsScreen from '../screens/admin/AppSettingsScreen';
@@ -21,6 +22,10 @@ export function RootNavigator() {
       />
       <Stack.Screen
         name="Signup" component={SignupScreen}
+        options={{ headerShown: true, title: '', headerStyle: { backgroundColor: colors.bg }, headerShadowVisible: false }}
+      />
+      <Stack.Screen
+        name="VerifyEmail" component={VerifyEmailScreen}
         options={{ headerShown: true, title: '', headerStyle: { backgroundColor: colors.bg }, headerShadowVisible: false }}
       />
       <Stack.Screen

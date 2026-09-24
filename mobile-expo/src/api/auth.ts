@@ -11,13 +11,20 @@ export interface AppUser {
 }
 
 export const AuthApi = {
-  async signup(params: {
-    name: string; email: string; password: string;
-    security_question: string; security_answer: string;
-  }): Promise<AppUser> {
-    const res = await api.post('/auth/signup', params);
+  /** Step 1: creates the account and emails a confirmation code. Does NOT log in. */
+  async signup(params: { name: string; email: string; password: string }): Promise<void> {
+    await api.post('/auth/signup', params);
+  },
+
+  /** Step 2: the user types the emailed code; on success they're logged in. */
+  async verifyEmail(email: string, code: string): Promise<AppUser> {
+    const res = await api.post('/auth/verify-email', { email, code });
     await TokenStorage.save(res.access_token);
     return res.user;
+  },
+
+  async resendCode(email: string): Promise<void> {
+    await api.post('/auth/resend-code', { email });
   },
 
   async login(email: string, password: string): Promise<AppUser> {
@@ -26,13 +33,13 @@ export const AuthApi = {
     return res.user;
   },
 
-  async forgotPasswordStart(email: string): Promise<string> {
-    const res = await api.post('/auth/forgot-password/start', { email });
-    return res.security_question;
+  /** Emails a password-reset code. */
+  async forgotPasswordStart(email: string): Promise<void> {
+    await api.post('/auth/forgot-password/start', { email });
   },
 
-  async forgotPasswordVerify(email: string, security_answer: string, new_password: string): Promise<void> {
-    await api.post('/auth/forgot-password/verify', { email, security_answer, new_password });
+  async forgotPasswordVerify(email: string, code: string, new_password: string): Promise<void> {
+    await api.post('/auth/forgot-password/verify', { email, code, new_password });
   },
 
   async me(): Promise<AppUser | null> {

@@ -5,6 +5,7 @@ import '../../providers/auth_provider.dart';
 import '../../theme/app_theme.dart';
 import 'forgot_password_screen.dart';
 import 'signup_screen.dart';
+import 'verify_email_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -22,9 +23,17 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _submitting = true);
     final auth = context.read<AuthProvider>();
-    final ok = await auth.login(_email.text.trim(), _password.text);
+    final result = await auth.login(_email.text.trim(), _password.text);
     setState(() => _submitting = false);
-    if (ok && mounted) Navigator.of(context).popUntil((r) => r.isFirst);
+    if (!mounted) return;
+    if (result == LoginResult.ok) {
+      Navigator.of(context).popUntil((r) => r.isFirst);
+    } else if (result == LoginResult.unverified) {
+      // Password was right but the email isn't confirmed yet: send a fresh code.
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => VerifyEmailScreen(email: _email.text.trim(), autoResend: true)),
+      );
+    }
   }
 
   @override

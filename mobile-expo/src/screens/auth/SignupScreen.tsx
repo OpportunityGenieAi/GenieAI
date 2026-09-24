@@ -1,15 +1,8 @@
 import React, { useState } from 'react';
 import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { Picker } from '@react-native-picker/picker';
 import { colors, fonts } from '../../theme/colors';
 import { useAuth } from '../../context/AuthContext';
-
-const QUESTIONS = [
-  'What city were you born in?',
-  "What was your first school's name?",
-  'What is your favourite subject?',
-];
 
 export default function SignupScreen() {
   const navigation = useNavigation<any>();
@@ -18,14 +11,12 @@ export default function SignupScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
-  const [securityQuestion, setSecurityQuestion] = useState(QUESTIONS[0]);
-  const [securityAnswer, setSecurityAnswer] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
 
   const submit = async () => {
     setLocalError(null);
-    if (!name.trim() || !email.includes('@') || password.length < 6 || !securityAnswer.trim()) {
+    if (!name.trim() || !email.includes('@') || password.length < 6) {
       setLocalError('Fill in every field (password needs 6+ characters).');
       return;
     }
@@ -34,9 +25,9 @@ export default function SignupScreen() {
       return;
     }
     setSubmitting(true);
-    const ok = await signup({ name: name.trim(), email: email.trim(), password, securityQuestion, securityAnswer });
+    const ok = await signup({ name: name.trim(), email: email.trim(), password });
     setSubmitting(false);
-    if (ok) navigation.goBack();
+    if (ok) navigation.replace('VerifyEmail', { email: email.trim() });
   };
 
   return (
@@ -61,16 +52,6 @@ export default function SignupScreen() {
           <TextInput style={styles.input} value={confirm} onChangeText={setConfirm} secureTextEntry />
         </View>
       </View>
-
-      <Text style={styles.label}>Security question</Text>
-      <View style={styles.pickerWrap}>
-        <Picker selectedValue={securityQuestion} onValueChange={setSecurityQuestion}>
-          {QUESTIONS.map((q) => <Picker.Item key={q} label={q} value={q} />)}
-        </Picker>
-      </View>
-      <Text style={styles.label}>Answer</Text>
-      <TextInput style={styles.input} value={securityAnswer} onChangeText={setSecurityAnswer} />
-      <Text style={styles.hint}>You'll need this to reset your password.</Text>
 
       <Pressable style={styles.primaryBtn} onPress={submit} disabled={submitting}>
         {submitting ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryBtnText}>Create account</Text>}
@@ -97,8 +78,6 @@ const styles = StyleSheet.create({
   errorText: { fontFamily: fonts.regular, color: colors.red, fontSize: 12.5 },
   label: { fontFamily: fonts.bold, fontSize: 12.5, color: colors.inkSoft, marginBottom: 6, marginTop: 12 },
   input: { backgroundColor: colors.grayTint, borderRadius: 10, paddingHorizontal: 13, paddingVertical: 12, fontFamily: fonts.regular, fontSize: 14, color: colors.ink },
-  pickerWrap: { backgroundColor: colors.grayTint, borderRadius: 10, overflow: 'hidden' },
-  hint: { fontFamily: fonts.regular, fontSize: 11.5, color: colors.inkSoft, marginTop: 5 },
   primaryBtn: { backgroundColor: colors.blue, borderRadius: 12, paddingVertical: 14, alignItems: 'center', marginTop: 20 },
   primaryBtnText: { fontFamily: fonts.bold, fontSize: 14, color: '#fff' },
   linkText: { fontFamily: fonts.bold, fontSize: 13, color: colors.blue },

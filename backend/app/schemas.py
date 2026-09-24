@@ -9,8 +9,15 @@ class SignupRequest(BaseModel):
     name: str
     email: EmailStr
     password: str = Field(min_length=6)
-    security_question: str
-    security_answer: str
+
+
+class VerifyEmailRequest(BaseModel):
+    email: EmailStr
+    code: str
+
+
+class ResendCodeRequest(BaseModel):
+    email: EmailStr
 
 
 class LoginRequest(BaseModel):
@@ -22,14 +29,14 @@ class ForgotPasswordStart(BaseModel):
     email: EmailStr
 
 
-class ForgotPasswordStartResponse(BaseModel):
-    security_question: str
-
-
 class ForgotPasswordVerify(BaseModel):
     email: EmailStr
-    security_answer: str
+    code: str
     new_password: str = Field(min_length=6)
+
+
+class MessageResponse(BaseModel):
+    message: str
 
 
 class UserOut(BaseModel):

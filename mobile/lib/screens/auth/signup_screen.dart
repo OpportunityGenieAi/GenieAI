@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../theme/app_theme.dart';
 import 'login_screen.dart';
+import 'verify_email_screen.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -17,15 +18,7 @@ class _SignupScreenState extends State<SignupScreen> {
   final _email = TextEditingController();
   final _password = TextEditingController();
   final _confirm = TextEditingController();
-  final _securityAnswer = TextEditingController();
-  String _securityQuestion = "What city were you born in?";
   bool _submitting = false;
-
-  static const _questions = [
-    "What city were you born in?",
-    "What was your first school's name?",
-    "What is your favourite subject?",
-  ];
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
@@ -39,11 +32,13 @@ class _SignupScreenState extends State<SignupScreen> {
           name: _name.text.trim(),
           email: _email.text.trim(),
           password: _password.text,
-          securityQuestion: _securityQuestion,
-          securityAnswer: _securityAnswer.text,
         );
     setState(() => _submitting = false);
-    if (ok && mounted) Navigator.of(context).popUntil((r) => r.isFirst);
+    if (ok && mounted) {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => VerifyEmailScreen(email: _email.text.trim())),
+      );
+    }
   }
 
   @override
@@ -105,20 +100,6 @@ class _SignupScreenState extends State<SignupScreen> {
                 ],
               ),
               const SizedBox(height: 14),
-              DropdownButtonFormField<String>(
-                value: _securityQuestion,
-                decoration: const InputDecoration(labelText: 'Security question'),
-                items: _questions.map((q) => DropdownMenuItem(value: q, child: Text(q, style: const TextStyle(fontSize: 13)))).toList(),
-                onChanged: (v) => setState(() => _securityQuestion = v ?? _questions.first),
-              ),
-              const SizedBox(height: 14),
-              TextFormField(
-                controller: _securityAnswer,
-                decoration: const InputDecoration(labelText: 'Answer'),
-                validator: (v) => (v == null || v.trim().isEmpty) ? 'Enter an answer' : null,
-              ),
-              const SizedBox(height: 4),
-              const Text("You'll need this to reset your password.", style: TextStyle(fontSize: 11.5, color: AppColors.inkSoft)),
               const SizedBox(height: 20),
               SizedBox(
                 width: double.infinity,

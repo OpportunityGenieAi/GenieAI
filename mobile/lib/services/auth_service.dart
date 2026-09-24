@@ -3,22 +3,28 @@ import 'api_client.dart';
 import 'secure_storage_service.dart';
 
 class AuthService {
-  Future<AppUser> signup({
+  /// Step 1: creates the account and emails a confirmation code. Does NOT log in.
+  Future<void> signup({
     required String name,
     required String email,
     required String password,
-    required String securityQuestion,
-    required String securityAnswer,
   }) async {
-    final res = await apiClient.post('/auth/signup', body: {
+    await apiClient.post('/auth/signup', body: {
       'name': name,
       'email': email,
       'password': password,
-      'security_question': securityQuestion,
-      'security_answer': securityAnswer,
     });
+  }
+
+  /// Step 2: the user types the emailed code; on success they're logged in.
+  Future<AppUser> verifyEmail({required String email, required String code}) async {
+    final res = await apiClient.post('/auth/verify-email', body: {'email': email, 'code': code});
     await SecureStorageService.saveToken(res['access_token'] as String);
     return AppUser.fromJson(res['user'] as Map<String, dynamic>);
+  }
+
+  Future<void> resendCode(String email) async {
+    await apiClient.post('/auth/resend-code', body: {'email': email});
   }
 
   Future<AppUser> login({required String email, required String password}) async {
@@ -27,19 +33,19 @@ class AuthService {
     return AppUser.fromJson(res['user'] as Map<String, dynamic>);
   }
 
-  Future<String> forgotPasswordStart(String email) async {
-    final res = await apiClient.post('/auth/forgot-password/start', body: {'email': email});
-    return res['security_question'] as String;
+  /// Emails a password-reset code.
+  Future<void> forgotPasswordStart(String email) async {
+    await apiClient.post('/auth/forgot-password/start', body: {'email': email});
   }
 
   Future<void> forgotPasswordVerify({
     required String email,
-    required String securityAnswer,
+    required String code,
     required String newPassword,
   }) async {
     await apiClient.post('/auth/forgot-password/verify', body: {
       'email': email,
-      'security_answer': securityAnswer,
+      'code': code,
       'new_password': newPassword,
     });
   }

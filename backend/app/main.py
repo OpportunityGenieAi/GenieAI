@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from sqlalchemy import text
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
@@ -33,6 +34,14 @@ app.include_router(settings_router.router)
 @app.on_event("startup")
 def on_startup():
     Base.metadata.create_all(bind=engine)
+    # Supabase now owns passwords, so the old credential columns must allow NULL.
+    # create_all() never alters existing tables, hence this idempotent step.
+    try:
+        with engine.begin() as conn:
+            for col in ("password_hash", "security_question", "security_answer_hash"):
+                conn.execute(text(f"ALTER TABLE users ALTER COLUMN {col} DROP NOT NULL"))
+    except Exception as exc:  # non-Postgres or table not ready; safe to skip
+        print(f"[startup] skipped users column relax: {exc}")
     db = SessionLocal()
     try:
         if db.query(Scholarship).count() == 0:

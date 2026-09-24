@@ -77,8 +77,9 @@ here:
 - Stand up a live server for you (needs a hosting account — Render,
   Railway, Fly.io, AWS, etc.)
 - Create your Stripe account or Anthropic API key
-- Send real password-reset emails (no email provider is wired up yet —
-  see the TODO in `backend/app/routers/auth.py`)
+- Create your Supabase project and SMTP account (signup-confirmation and
+  password-reset emails are sent by Supabase Auth — see
+  `SUPABASE_SETUP.md`)
 
 Once you have those four things, this codebase is what a contractor or
 your dev team would build from to actually ship it.

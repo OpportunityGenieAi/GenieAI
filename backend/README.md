@@ -69,10 +69,10 @@ Nothing charges real money and no AI calls succeed until you fill these in.
   small team: Render, Railway, or Fly.io for the API + managed Postgres
   add-on (all have free/cheap tiers to start); AWS/GCP if you want more
   control later.
-- **Email**: password reset currently uses a security question, which is
-  weak. Before real users rely on it, add an emailed reset-token flow —
-  the TODO is marked in `app/routers/auth.py`. Any transactional email
-  provider (SendGrid, Postmark, SES) will do.
+- **Email**: signup confirmation and password reset are handled by
+  Supabase Auth (it emails a 6-digit code). Follow `../SUPABASE_SETUP.md`
+  to create the project, set custom SMTP, and fill in `SUPABASE_URL` /
+  `SUPABASE_ANON_KEY`.
 - **Stripe**: create a real Product/Price in your Stripe Dashboard, set
   the three Stripe env vars, and point a webhook endpoint at
   `https://your-domain/billing/webhook`.
@@ -87,10 +87,12 @@ Nothing charges real money and no AI calls succeed until you fill these in.
 ## 5. API surface (see `/docs` for full schema)
 
 ```
-POST   /auth/signup
-POST   /auth/login
-POST   /auth/forgot-password/start
-POST   /auth/forgot-password/verify
+POST   /auth/signup                    (emails a confirmation code)
+POST   /auth/verify-email              (code -> logged in)
+POST   /auth/resend-code
+POST   /auth/login                     (403 = email not verified yet)
+POST   /auth/forgot-password/start     (emails a reset code)
+POST   /auth/forgot-password/verify    (code + new password)
 GET    /auth/me
 
 GET    /scholarships?q=&region=

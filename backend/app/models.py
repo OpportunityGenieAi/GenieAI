@@ -20,13 +20,14 @@ class User(Base):
     id = Column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
     name = Column(String, nullable=False)
     email = Column(String, unique=True, index=True, nullable=False)
-    password_hash = Column(String, nullable=False)
 
-    # Password recovery. NOTE: a security question is a weak recovery
-    # mechanism — before real launch, replace/augment with an emailed
-    # reset-token flow (see routers/auth.py for the TODO).
-    security_question = Column(String, nullable=False)
-    security_answer_hash = Column(String, nullable=False)
+    # Passwords and email confirmation / reset now live in Supabase Auth.
+    # These three columns are legacy: only accounts created before the
+    # Supabase switch still have values (they can keep logging in with the
+    # old password). New accounts leave them empty.
+    password_hash = Column(String, nullable=True)
+    security_question = Column(String, nullable=True)
+    security_answer_hash = Column(String, nullable=True)
 
     is_admin = Column(Boolean, default=False, nullable=False)
     subscription_tier = Column(String, default="free", nullable=False)  # free | premium

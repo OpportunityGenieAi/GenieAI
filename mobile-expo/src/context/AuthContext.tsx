@@ -1,14 +1,20 @@
 import React, { createContext, useCallback, useContext, useState } from 'react';
 import { AppUser, AuthApi } from '../api/auth';
+import { ApiError } from '../api/client';
 import { TokenStorage } from '../api/tokenStorage';
+
+export type LoginResult = 'ok' | 'unverified' | 'error';
 
 interface AuthContextValue {
   user: AppUser | null;
   loading: boolean;
   error: string | null;
   restoreSession: () => Promise<void>;
-  login: (email: string, password: string) => Promise<boolean>;
-  signup: (params: { name: string; email: string; password: string; securityQuestion: string; securityAnswer: string }) => Promise<boolean>;
+  login: (email: string, password: string) => Promise<LoginResult>;
+  /** Returns true when the confirmation code email has been sent. */
+  signup: (params: { name: string; email: string; password: string }) => Promise<boolean>;
+  /** Confirms the emailed code and logs the user in. */
+  verifyEmail: (email: string, code: string) => Promise<boolean>;
   logout: () => Promise<void>;
   clearError: () => void;
 }
@@ -30,32 +36,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setLoading(false);
   }, []);
 
-  const login = useCallback(async (email: string, password: string) => {
+  const login = useCallback(async (email: string, password: string): Promise<LoginResult> => {
     setError(null);
     try {
       const u = await AuthApi.login(email, password);
       setUser(u);
+      return 'ok';
+    } catch (e: any) {
+      // 403 = correct password but email not verified yet
+      if (e instanceof ApiError && e.status === 403) return 'unverified';
+      setError(e.message || 'Login failed');
+      return 'error';
+    }
+  }, []);
+
+  const signup = useCallback(async (params: { name: string; email: string; password: string }) => {
+    setError(null);
+    try {
+      await AuthApi.signup(params);
       return true;
     } catch (e: any) {
-      setError(e.message || 'Login failed');
+      setError(e.message || 'Signup failed');
       return false;
     }
   }, []);
 
-  const signup = useCallback(async (params: { name: string; email: string; password: string; securityQuestion: string; securityAnswer: string }) => {
+  const verifyEmail = useCallback(async (email: string, code: string) => {
     setError(null);
     try {
-      const u = await AuthApi.signup({
-        name: params.name,
-        email: params.email,
-        password: params.password,
-        security_question: params.securityQuestion,
-        security_answer: params.securityAnswer,
-      });
+      const u = await AuthApi.verifyEmail(email, code);
       setUser(u);
       return true;
     } catch (e: any) {
-      setError(e.message || 'Signup failed');
+      setError(e.message || 'Verification failed');
       return false;
     }
   }, []);
@@ -68,7 +81,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const clearError = useCallback(() => setError(null), []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, error, restoreSession, login, signup, logout, clearError }}>
+    <AuthContext.Provider value={{ user, loading, error, restoreSession, login, signup, verifyEmail, logout, clearError }}>
       {children}
     </AuthContext.Provider>
   );

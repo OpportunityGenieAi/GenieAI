@@ -1,8 +1,12 @@
 import 'package:flutter/foundation.dart';
 
 import '../models/user.dart';
+import '../services/api_client.dart';
 import '../services/auth_service.dart';
 import '../services/secure_storage_service.dart';
+
+/// ok = logged in; unverified = right password but email not confirmed yet.
+enum LoginResult { ok, unverified, error }
 
 class AuthProvider extends ChangeNotifier {
   final _authService = AuthService();
@@ -27,11 +31,34 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<bool> login(String email, String password) async {
+  Future<LoginResult> login(String email, String password) async {
     _error = null;
     try {
       _user = await _authService.login(email: email, password: password);
       notifyListeners();
+      return LoginResult.ok;
+    } on ApiException catch (e) {
+      // 403 = correct password but email not verified yet
+      if (e.statusCode == 403) return LoginResult.unverified;
+      _error = e.message;
+      notifyListeners();
+      return LoginResult.error;
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return LoginResult.error;
+    }
+  }
+
+  /// Returns true when the confirmation code email has been sent.
+  Future<bool> signup({
+    required String name,
+    required String email,
+    required String password,
+  }) async {
+    _error = null;
+    try {
+      await _authService.signup(name: name, email: email, password: password);
       return true;
     } catch (e) {
       _error = e.toString();
@@ -40,22 +67,11 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> signup({
-    required String name,
-    required String email,
-    required String password,
-    required String securityQuestion,
-    required String securityAnswer,
-  }) async {
+  /// Confirms the emailed code and logs the user in.
+  Future<bool> verifyEmail(String email, String code) async {
     _error = null;
     try {
-      _user = await _authService.signup(
-        name: name,
-        email: email,
-        password: password,
-        securityQuestion: securityQuestion,
-        securityAnswer: securityAnswer,
-      );
+      _user = await _authService.verifyEmail(email: email, code: code);
       notifyListeners();
       return true;
     } catch (e) {

@@ -14,9 +14,11 @@ export default function LoginScreen() {
   const submit = async () => {
     if (!email.includes('@') || !password) return;
     setSubmitting(true);
-    const ok = await login(email.trim(), password);
+    const result = await login(email.trim(), password);
     setSubmitting(false);
-    if (ok) navigation.goBack();
+    if (result === 'ok') navigation.goBack();
+    // Password was right but the email isn't confirmed yet: send a fresh code.
+    if (result === 'unverified') navigation.replace('VerifyEmail', { email: email.trim(), autoResend: true });
   };
 
   return (
