@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Linking, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { colors, fonts } from '../../theme/colors';
 import { useAuth } from '../../context/AuthContext';
@@ -41,6 +41,12 @@ export default function LoginScreen() {
       <Pressable style={{ marginTop: 10, alignItems: 'center' }} onPress={() => navigation.replace('Signup')}>
         <Text style={styles.linkText}>New here? Create an account</Text>
       </Pressable>
+      <Pressable
+        style={{ marginTop: 20, alignItems: 'center' }}
+        onPress={() => Linking.openURL('https://opportunitygenie.org/static/privacy-policy.html')}
+      >
+        <Text style={styles.footerLinkText}>Privacy Policy</Text>
+      </Pressable>
     </View>
   );
 }
@@ -56,4 +62,5 @@ const styles = StyleSheet.create({
   primaryBtn: { backgroundColor: colors.blue, borderRadius: 12, paddingVertical: 14, alignItems: 'center', marginTop: 20 },
   primaryBtnText: { fontFamily: fonts.bold, fontSize: 14, color: '#fff' },
   linkText: { fontFamily: fonts.bold, fontSize: 13, color: colors.blue },
+  footerLinkText: { fontFamily: fonts.regular, fontSize: 12, color: colors.inkSoft, textDecorationLine: 'underline' },
 });

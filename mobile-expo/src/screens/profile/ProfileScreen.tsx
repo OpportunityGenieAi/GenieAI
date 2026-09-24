@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { Linking, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { useNavigation } from '@react-navigation/native';
 import { colors, fonts } from '../../theme/colors';
@@ -219,6 +219,16 @@ export default function ProfileScreen() {
           </>
         )}
       </View>
+
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Legal</Text>
+        <Pressable
+          style={styles.linkRow}
+          onPress={() => Linking.openURL('https://opportunitygenie.org/static/privacy-policy.html')}
+        >
+          <Text style={styles.linkRowText}>Privacy Policy</Text>
+        </Pressable>
+      </View>
     </ScrollView>
   );
 }
@@ -254,4 +264,6 @@ const styles = StyleSheet.create({
   readinessRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 7 },
   readinessLabel: { fontFamily: fonts.regular, fontSize: 13, color: colors.ink },
   readinessStars: { color: colors.blue, letterSpacing: 1 },
+  linkRow: { paddingVertical: 10 },
+  linkRowText: { fontFamily: fonts.bold, fontSize: 14, color: colors.blue },
 });
