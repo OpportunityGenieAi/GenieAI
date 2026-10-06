@@ -50,6 +50,17 @@ def on_startup():
     finally:
         db.close()
 
+    # Load curated scholarship batches from app/data/*.csv (idempotent)
+    try:
+        from app.services.catalog_import import import_catalog
+        db = SessionLocal()
+        try:
+            import_catalog(db)
+        finally:
+            db.close()
+    except Exception as exc:  # a bad CSV must never stop the API booting
+        print(f"[catalog] import skipped: {exc}")
+
 
 @app.get("/health")
 def health():
