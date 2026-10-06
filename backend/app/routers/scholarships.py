@@ -16,10 +16,15 @@ router = APIRouter(prefix="/scholarships", tags=["scholarships"])
 def list_scholarships(
     q: Optional[str] = Query(None, description="Free-text search across name, country, field"),
     region: Optional[str] = Query(None, description="UK | USA | Europe | Africa | Asia | Other | All"),
+    sort: str = Query("latest", description="latest (newest first) | name"),
     db: Session = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_user_optional),
 ):
     query = db.query(Scholarship)
+    if sort == "name":
+        query = query.order_by(Scholarship.name.asc())
+    else:
+        query = query.order_by(Scholarship.created_at.desc(), Scholarship.name.asc())
     scholarships = query.all()
 
     if q:
