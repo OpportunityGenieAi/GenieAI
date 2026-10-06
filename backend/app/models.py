@@ -42,6 +42,9 @@ class User(Base):
     tracker_entries = relationship("TrackerEntry", back_populates="user", cascade="all, delete-orphan")
 
 
+from sqlalchemy import Boolean, Date  # catalog columns
+
+
 class Scholarship(Base):
     __tablename__ = "scholarships"
 
@@ -56,6 +59,10 @@ class Scholarship(Base):
     official_link = Column(String, nullable=False)
     tags = Column(JSON, default=list)
     blurb = Column(Text, default="")
+    source_url = Column(String, nullable=True)
+    deadline_date = Column(Date, nullable=True)
+    last_verified = Column(Date, nullable=True)
+    is_active = Column(Boolean, nullable=False, default=True, server_default="true")
 
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

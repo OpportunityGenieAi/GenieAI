@@ -42,6 +42,19 @@ def on_startup():
                 conn.execute(text(f"ALTER TABLE users ALTER COLUMN {col} DROP NOT NULL"))
     except Exception as exc:  # non-Postgres or table not ready; safe to skip
         print(f"[startup] skipped users column relax: {exc}")
+
+    # Add catalog columns to the existing scholarships table (idempotent, Postgres).
+    for ddl in (
+        "ALTER TABLE scholarships ADD COLUMN IF NOT EXISTS source_url VARCHAR",
+        "ALTER TABLE scholarships ADD COLUMN IF NOT EXISTS deadline_date DATE",
+        "ALTER TABLE scholarships ADD COLUMN IF NOT EXISTS last_verified DATE",
+        "ALTER TABLE scholarships ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE",
+    ):
+        try:
+            with engine.begin() as conn:
+                conn.execute(text(ddl))
+        except Exception as exc:
+            print(f"[startup] skipped scholarships column add: {exc}")
     db = SessionLocal()
     try:
         if db.query(Scholarship).count() == 0:
