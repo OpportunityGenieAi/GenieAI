@@ -60,7 +60,7 @@ def _call_gemini(api_key: str, prompt: str) -> str:
     """Google Gemini (free tier available through Google AI Studio)."""
     model = settings.GEMINI_MODEL
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
-    generation_config: dict = {"maxOutputTokens": 1024, "temperature": 0.7}
+    generation_config: dict = {"maxOutputTokens": 2048, "temperature": 0.7}
     if "2.5" in model:
         # 2.5 models spend output tokens on hidden "thinking"; turn it off so the answer is not cut short.
         generation_config["thinkingConfig"] = {"thinkingBudget": 0}

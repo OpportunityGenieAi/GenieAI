@@ -32,7 +32,7 @@ class Settings(BaseSettings):
     # Otherwise the advisor falls back to Anthropic if ANTHROPIC_API_KEY is set.
     # Set these as environment variables on the server (Railway > Variables), never in code.
     GEMINI_API_KEY: str = ""
-    GEMINI_MODEL: str = "gemini-2.5-flash-lite"
+    GEMINI_MODEL: str = "gemini-3.5-flash-lite"
     ANTHROPIC_API_KEY: str = ""
     ANTHROPIC_MODEL: str = "claude-sonnet-4-6"
 
