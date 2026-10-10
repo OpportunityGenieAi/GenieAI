@@ -6,7 +6,7 @@ from fastapi.staticfiles import StaticFiles
 from app.config import settings
 from app.database import Base, SessionLocal, engine
 from app.models import Scholarship
-from app.routers import advisor, auth, billing, profile, scholarships, tracker
+from app.routers import advisor, auth, billing, profile, scholarships, share, tracker
 from app.routers import settings as settings_router
 from app.seed_data import SEED_SCHOLARSHIPS
 
@@ -19,7 +19,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
     )
-    
+
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 app.include_router(auth.router)
@@ -29,6 +29,7 @@ app.include_router(tracker.router)
 app.include_router(advisor.router)
 app.include_router(billing.router)
 app.include_router(settings_router.router)
+app.include_router(share.router)
 
 
 @app.on_event("startup")

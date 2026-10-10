@@ -1,3 +1,4 @@
+import uuid
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -51,6 +52,19 @@ def list_scholarships(
             out.match_score, out.match_tier = m["score"], m["tier"]
         results.append(out)
     return results
+
+
+@router.get("/{scholarship_id}", response_model=ScholarshipOut)
+def get_scholarship(scholarship_id: str, db: Session = Depends(get_db)):
+    """One scholarship by id. Used by the app when a shared link is opened."""
+    try:
+        uuid.UUID(scholarship_id)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Scholarship not found")
+    scholarship = db.query(Scholarship).filter(Scholarship.id == scholarship_id).first()
+    if not scholarship:
+        raise HTTPException(status_code=404, detail="Scholarship not found")
+    return ScholarshipOut.model_validate(scholarship)
 
 
 def _region_of(country: str) -> str:
