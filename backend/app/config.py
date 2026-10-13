@@ -29,10 +29,12 @@ class Settings(BaseSettings):
 
     # --- AI advisor ---
     # Gemini (free tier via Google AI Studio) is used when GEMINI_API_KEY is set.
+    # If GEMINI_MODEL is overloaded or unavailable, GEMINI_FALLBACK_MODEL is tried next.
     # Otherwise the advisor falls back to Anthropic if ANTHROPIC_API_KEY is set.
     # Set these as environment variables on the server (Railway > Variables), never in code.
     GEMINI_API_KEY: str = ""
     GEMINI_MODEL: str = "gemini-3.5-flash-lite"
+    GEMINI_FALLBACK_MODEL: str = "gemini-3.1-flash-lite"
     ANTHROPIC_API_KEY: str = ""
     ANTHROPIC_MODEL: str = "claude-sonnet-4-6"
 
