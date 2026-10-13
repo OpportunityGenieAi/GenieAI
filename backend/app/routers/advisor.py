@@ -2,12 +2,11 @@ import hashlib
 import logging
 import re
 import time
-import uuid
 from datetime import datetime, timezone
 from typing import Literal, Optional
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -15,7 +14,7 @@ from app.config import settings
 from app.database import get_db
 from app.deps import get_current_user
 from app.models import AcademicProfile, AppSetting, GpaProfile, Scholarship, User
-from app.models_chat import AdvisorConversation, AdvisorMessage
+from app.models_advisor import AdvisorConversation, AdvisorMessage
 from app.schemas import AdvisorResponse
 from app.services.advisor_knowledge import ADVISOR_CHAT_SYSTEM_PROMPT
 from app.services.match_engine import compute_match_score
@@ -45,21 +44,18 @@ Never suggest fabricating volunteering, publications, or achievements.
 Be encouraging without being dishonest: reframe weaknesses as "areas to
 strengthen," not verdicts on the student's chances."""
 
-GENERIC_ERROR = "Couldn't reach the advisor just now — try again in a moment."
-BUSY_ERROR = "The advisor is busy right now — please try again in a few minutes."
+GENERIC_ERROR = "Couldn't reach the AI advisor just now — try again in a moment."
+BUSY_ERROR = "The AI advisor is busy right now — please try again in a few minutes."
 
 # --- limits for the chat endpoint -------------------------------------------------------
 MAX_MESSAGE_CHARS = 15000      # one message (a pasted statement of purpose fits easily)
 MAX_HISTORY_MESSAGES = 12      # how much of the conversation is sent to the model
 MAX_TOTAL_CHARS = 40000        # cap on the whole conversation sent to the model
 CHAT_MAX_REQUESTS = 20         # per user ...
-CHAT_WINDOW_SECONDS = 600      # ... per 10 minutes (protects the Gemini quota)
+CHAT_WINDOW_SECONDS = 600      # ... per 10 minutes (protects the free Gemini quota)
+MAX_SAVED_CHATS = 50           # how many saved chats the History list returns
 
-# --- saved chats ------------------------------------------------------------------------
-MAX_CONVERSATIONS = 50              # per student; the oldest is removed when a new one would exceed this
-MAX_MESSAGES_PER_CONVERSATION = 200
-
-# Saves quota for /recommend: the same student asking again with the same profile
+# Saves free-tier quota for /recommend: the same student asking again with the same profile
 # within 10 minutes gets the previous answer instead of a new model call.
 CACHE_TTL_SECONDS = 600
 _CACHE: dict[str, tuple[float, str, str]] = {}  # user_id -> (timestamp, prompt_hash, text)
@@ -78,12 +74,15 @@ def _resolve_anthropic_key(db: Session) -> str:
     return settings.ANTHROPIC_API_KEY
 
 
-def _gemini_payload(model: str, system_prompt: str, turns: list[dict], max_tokens: int) -> dict:
+def _call_gemini(api_key: str, system_prompt: str, turns: list[dict], max_tokens: int) -> str:
+    """Google Gemini (free tier available through Google AI Studio)."""
+    model = settings.GEMINI_MODEL
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
     generation_config: dict = {"maxOutputTokens": max_tokens, "temperature": 0.7}
     if "2.5" in model:
         # 2.5 models spend output tokens on hidden "thinking"; turn it off so the answer is not cut short.
         generation_config["thinkingConfig"] = {"thinkingBudget": 0}
-    return {
+    payload = {
         "systemInstruction": {"parts": [{"text": system_prompt}]},
         "contents": [
             {"role": "model" if t["role"] == "assistant" else "user", "parts": [{"text": t["content"]}]}
@@ -91,9 +90,20 @@ def _gemini_payload(model: str, system_prompt: str, turns: list[dict], max_token
         ],
         "generationConfig": generation_config,
     }
+    with httpx.Client(timeout=60.0) as client:
+        response = client.post(
+            url,
+            headers={"x-goog-api-key": api_key, "content-type": "application/json"},
+            json=payload,
+        )
+    if response.status_code == 429:
+        logger.warning("Gemini rate limit reached: %s", response.text[:300])
+        raise HTTPException(status_code=429, detail=BUSY_ERROR)
+    if response.status_code >= 400:
+        logger.error("Gemini error %s (model %s): %s", response.status_code, model, response.text[:500])
+        raise HTTPException(status_code=502, detail=GENERIC_ERROR)
 
-
-def _gemini_text(data: dict, model: str) -> str:
+    data = response.json()
     candidates = data.get("candidates") or []
     parts = (candidates[0].get("content") or {}).get("parts", []) if candidates else []
     text = "\n".join(p.get("text", "") for p in parts).strip()
@@ -101,63 +111,8 @@ def _gemini_text(data: dict, model: str) -> str:
         logger.warning("Gemini reply hit the output token limit (model %s)", model)
     if not text:
         logger.error("Gemini returned no text (model %s): %s", model, str(data)[:500])
+        raise HTTPException(status_code=502, detail=GENERIC_ERROR)
     return text
-
-
-def _call_gemini(api_key: str, system_prompt: str, turns: list[dict], max_tokens: int) -> str:
-    """Google Gemini (free tier available through Google AI Studio).
-
-    If a model is overloaded (503/500), over quota (429), missing (404) or returns nothing, the call is
-    retried once where that makes sense and then moves on to GEMINI_FALLBACK_MODEL. Only real problems
-    such as an invalid key (400/401/403) fail straight away.
-    """
-    models = [settings.GEMINI_MODEL]
-    fallback = (settings.GEMINI_FALLBACK_MODEL or "").strip()
-    if fallback and fallback not in models:
-        models.append(fallback)
-
-    saw_busy = False
-    with httpx.Client(timeout=45.0) as client:
-        for model in models:
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
-            payload = _gemini_payload(model, system_prompt, turns, max_tokens)
-            for attempt in (1, 2):
-                try:
-                    response = client.post(
-                        url,
-                        headers={"x-goog-api-key": api_key, "content-type": "application/json"},
-                        json=payload,
-                    )
-                except httpx.HTTPError as exc:
-                    saw_busy = True
-                    logger.warning("Gemini request failed (model %s, attempt %s): %s", model, attempt, exc)
-                    if attempt == 1:
-                        time.sleep(1.5)
-                        continue
-                    break
-
-                status = response.status_code
-                if status == 200:
-                    text = _gemini_text(response.json(), model)
-                    if text:
-                        return text
-                    break  # empty answer: try the next model
-                if status in (429, 500, 503):
-                    saw_busy = True
-                    logger.warning("Gemini busy %s (model %s, attempt %s): %s", status, model, attempt, response.text[:300])
-                    if status != 429 and attempt == 1:
-                        time.sleep(1.5)
-                        continue
-                    break
-                if status == 404:
-                    logger.error("Gemini model not found/retired (model %s): %s", model, response.text[:300])
-                    break
-                logger.error("Gemini error %s (model %s): %s", status, model, response.text[:500])
-                raise HTTPException(status_code=502, detail=GENERIC_ERROR)
-
-    if saw_busy:
-        raise HTTPException(status_code=503, detail=BUSY_ERROR)
-    raise HTTPException(status_code=502, detail=GENERIC_ERROR)
 
 
 def _call_anthropic(api_key: str, system_prompt: str, turns: list[dict], max_tokens: int) -> str:
@@ -177,9 +132,9 @@ def _call_anthropic(api_key: str, system_prompt: str, turns: list[dict], max_tok
                 "messages": [{"role": t["role"], "content": t["content"]} for t in turns],
             },
         )
-    if response.status_code in (429, 529):
-        logger.warning("Anthropic busy %s: %s", response.status_code, response.text[:300])
-        raise HTTPException(status_code=503, detail=BUSY_ERROR)
+    if response.status_code == 429:
+        logger.warning("Anthropic rate limit reached: %s", response.text[:300])
+        raise HTTPException(status_code=429, detail=BUSY_ERROR)
     if response.status_code >= 400:
         # The body says why (invalid key, credit balance too low, unknown model...).
         logger.error("Anthropic error %s: %s", response.status_code, response.text[:500])
@@ -198,7 +153,7 @@ def _generate(db: Session, system_prompt: str, turns: list[dict], max_tokens: in
     if not gemini_key and not anthropic_key:
         raise HTTPException(
             status_code=503,
-            detail="The advisor isn't configured yet — set GEMINI_API_KEY (or ANTHROPIC_API_KEY) on the server.",
+            detail="AI advisor isn't configured yet — set GEMINI_API_KEY (or ANTHROPIC_API_KEY) on the server.",
         )
     try:
         if gemini_key:
@@ -207,7 +162,7 @@ def _generate(db: Session, system_prompt: str, turns: list[dict], max_tokens: in
     except HTTPException:
         raise
     except Exception:
-        logger.exception("Advisor call failed")
+        logger.exception("AI advisor call failed")
         raise HTTPException(status_code=502, detail=GENERIC_ERROR)
 
 
@@ -264,7 +219,7 @@ second person, encouraging but realistic."""
 
 
 # ======================================================================================
-# POST /advisor/chat  (conversation, document feedback, scholarship database, saved chats)
+# POST /advisor/chat  (open conversation, document feedback, scholarship database)
 # ======================================================================================
 class ChatTurn(BaseModel):
     role: Literal["user", "assistant"]
@@ -272,11 +227,10 @@ class ChatTurn(BaseModel):
 
 
 class ChatRequest(BaseModel):
-    # Current app: send only the new `message` (and `conversation_id` to continue a saved chat);
-    # the server keeps and reloads the history.
+    # Current app: one new message plus (optionally) the id of the saved chat to continue.
     message: Optional[str] = None
     conversation_id: Optional[str] = None
-    # Older app versions send the whole conversation in `messages`; nothing is saved for those.
+    # Older app builds: the whole conversation sent each time (nothing is saved).
     messages: Optional[list[ChatTurn]] = None
 
 
@@ -284,26 +238,6 @@ class ChatResponse(BaseModel):
     text: str
     conversation_id: Optional[str] = None
     title: Optional[str] = None
-
-
-class ConversationSummary(BaseModel):
-    id: str
-    title: str
-    preview: Optional[str] = None
-    updated_at: datetime
-
-
-class StoredMessage(BaseModel):
-    id: int
-    role: str
-    content: str
-    created_at: datetime
-
-
-class ConversationDetail(BaseModel):
-    id: str
-    title: str
-    messages: list[StoredMessage]
 
 
 def _clean_turns(messages: list[ChatTurn]) -> list[dict]:
@@ -485,67 +419,28 @@ def _build_chat_system_prompt(
     return "\n\n".join([ADVISOR_CHAT_SYSTEM_PROMPT, f"TODAY'S DATE: {today}", profile_block, "\n\n".join(db_parts)])
 
 
-# ---------- saved chats helpers ----------
-def _valid_uuid(value: str) -> bool:
-    try:
-        uuid.UUID(str(value))
-        return True
-    except ValueError:
-        return False
-
-
-def _get_owned_conversation(db: Session, conversation_id: str, user_id: str) -> AdvisorConversation:
-    if not _valid_uuid(conversation_id):
-        raise HTTPException(status_code=404, detail="Chat not found.")
-    convo = (
-        db.query(AdvisorConversation)
-        .filter(AdvisorConversation.id == conversation_id, AdvisorConversation.user_id == user_id)
-        .first()
-    )
-    if not convo:
-        raise HTTPException(status_code=404, detail="Chat not found.")
-    return convo
-
-
-def _make_title(text: str) -> str:
-    first = ""
-    for line in (text or "").splitlines():
-        if line.strip():
-            first = line.strip()
-            break
-    first = re.sub(r"\s+", " ", first)
-    if not first:
+def _make_title(first_message: str) -> str:
+    title = " ".join((first_message or "").split())
+    if not title:
         return "New chat"
-    return first[:57] + "..." if len(first) > 60 else first
+    return title if len(title) <= 60 else title[:57].rstrip() + "..."
 
 
-def _snippet(text: str, limit: int = 100) -> str:
-    flat = re.sub(r"\s+", " ", text or "").strip()
-    return flat[: limit - 3] + "..." if len(flat) > limit else flat
+def _iso(dt: Optional[datetime]) -> str:
+    return (dt.isoformat() + "Z") if dt else ""
 
 
-def _delete_conversation_rows(db: Session, conversation_ids: list[str]) -> None:
-    if not conversation_ids:
-        return
-    db.query(AdvisorMessage).filter(AdvisorMessage.conversation_id.in_(conversation_ids)).delete(
-        synchronize_session=False
-    )
-    db.query(AdvisorConversation).filter(AdvisorConversation.id.in_(conversation_ids)).delete(
-        synchronize_session=False
-    )
-
-
-def _trim_conversations(db: Session, user_id: str) -> None:
-    """Keep each student's saved chats under MAX_CONVERSATIONS by removing the oldest ones."""
-    rows = (
-        db.query(AdvisorConversation.id)
-        .filter(AdvisorConversation.user_id == user_id)
-        .order_by(AdvisorConversation.updated_at.asc())
-        .all()
-    )
-    excess = len(rows) - (MAX_CONVERSATIONS - 1)
-    if excess > 0:
-        _delete_conversation_rows(db, [r[0] for r in rows[:excess]])
+def _own_conversation(db: Session, conversation_id: str, user_id: str) -> Optional[AdvisorConversation]:
+    """A student can only ever reach their own chats."""
+    try:
+        return (
+            db.query(AdvisorConversation)
+            .filter(AdvisorConversation.id == conversation_id, AdvisorConversation.user_id == user_id)
+            .first()
+        )
+    except Exception:  # e.g. the id is not a valid UUID
+        db.rollback()
+        return None
 
 
 @router.post("/chat", response_model=ChatResponse)
@@ -555,88 +450,105 @@ def chat(
     current_user: User = Depends(get_current_user),
 ):
     user_id = str(current_user.id)
-    convo: Optional[AdvisorConversation] = None
-    new_text: Optional[str] = None
-
-    if payload.message is not None:
-        new_text = payload.message.strip()
-        if not new_text:
-            raise HTTPException(status_code=400, detail="Please type a question or paste your text.")
-        if len(new_text) > MAX_MESSAGE_CHARS:
-            raise HTTPException(
-                status_code=400,
-                detail=f"That message is too long (the limit is {MAX_MESSAGE_CHARS:,} characters). "
-                       "Please send it in two parts.",
-            )
-        history: list[ChatTurn] = []
-        if payload.conversation_id:
-            convo = _get_owned_conversation(db, payload.conversation_id, user_id)
-            count = db.query(AdvisorMessage).filter(AdvisorMessage.conversation_id == convo.id).count()
-            if count >= MAX_MESSAGES_PER_CONVERSATION:
-                raise HTTPException(
-                    status_code=400,
-                    detail="This chat is very long — please start a new chat to keep going.",
-                )
-            rows = (
-                db.query(AdvisorMessage)
-                .filter(AdvisorMessage.conversation_id == convo.id)
-                .order_by(AdvisorMessage.id.desc())
-                .limit(MAX_HISTORY_MESSAGES)
-                .all()
-            )
-            rows.reverse()
-            history = [ChatTurn(role=r.role, content=r.content) for r in rows]
-        turns = _clean_turns(history + [ChatTurn(role="user", content=new_text)])
-    elif payload.messages:
-        turns = _clean_turns(payload.messages)  # older app versions: not saved
-    else:
-        raise HTTPException(status_code=400, detail="Please type a question or paste your text.")
-
-    _check_rate_limit(user_id)
-
     gpa = db.query(GpaProfile).filter(GpaProfile.user_id == current_user.id).first()
     academic = db.query(AcademicProfile).filter(AcademicProfile.user_id == current_user.id).first()
+
+    # ---- older app builds: stateless chat, the whole conversation is sent each time ----
+    if payload.message is None:
+        if not payload.messages:
+            raise HTTPException(status_code=400, detail="Please type a question or paste your text.")
+        turns = _clean_turns(payload.messages)
+        _check_rate_limit(user_id)
+        system_prompt = _build_chat_system_prompt(db, gpa, academic, turns)
+        return ChatResponse(text=_generate(db, system_prompt, turns, 4096))
+
+    # ---- current app: one message, history kept on the server ----
+    content = payload.message.strip()
+    if not content:
+        raise HTTPException(status_code=400, detail="Please type a question or paste your text.")
+    if len(content) > MAX_MESSAGE_CHARS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"That message is too long (the limit is {MAX_MESSAGE_CHARS:,} characters). "
+                   "Please send it in two parts.",
+        )
+
+    conversation: Optional[AdvisorConversation] = None
+    history: list[ChatTurn] = []
+    if payload.conversation_id:
+        conversation = _own_conversation(db, payload.conversation_id, user_id)
+        if conversation is None:
+            raise HTTPException(status_code=404, detail="That chat could not be found. Start a new chat.")
+        rows = (
+            db.query(AdvisorMessage)
+            .filter(AdvisorMessage.conversation_id == conversation.id)
+            .order_by(AdvisorMessage.id.desc())
+            .limit(MAX_HISTORY_MESSAGES)
+            .all()
+        )
+        history = [ChatTurn(role=r.role, content=r.content) for r in reversed(rows)]
+
+    turns = _clean_turns(history + [ChatTurn(role="user", content=content)])
+    _check_rate_limit(user_id)
 
     system_prompt = _build_chat_system_prompt(db, gpa, academic, turns)
     text = _generate(db, system_prompt, turns, 4096)
 
-    if new_text is None:
-        return ChatResponse(text=text)
-
-    # Save the exchange (user message + reply) only after the model answered, so a failed
-    # attempt never leaves a half-finished conversation behind.
-    try:
-        if convo is None:
-            _trim_conversations(db, user_id)
-            convo = AdvisorConversation(user_id=user_id, title=_make_title(new_text))
-            db.add(convo)
-            db.flush()
-        db.add(AdvisorMessage(conversation_id=convo.id, role="user", content=new_text))
+    # Save only after a successful reply, so a failed attempt never leaves half a conversation behind.
+    if conversation is None:
+        conversation = AdvisorConversation(user_id=user_id, title=_make_title(content))
+        db.add(conversation)
         db.flush()
-        db.add(AdvisorMessage(conversation_id=convo.id, role="assistant", content=text))
-        convo.preview = _snippet(text)
-        convo.updated_at = datetime.now(timezone.utc)
-        db.commit()
-        return ChatResponse(text=text, conversation_id=convo.id, title=convo.title)
-    except Exception:
-        db.rollback()
-        logger.exception("Could not save advisor conversation")
-        return ChatResponse(text=text)  # the student still gets the answer, just not saved
+    db.add(AdvisorMessage(conversation_id=conversation.id, role="user", content=content))
+    db.add(AdvisorMessage(conversation_id=conversation.id, role="assistant", content=text))
+    conversation.updated_at = datetime.utcnow()
+    db.commit()
+    return ChatResponse(text=text, conversation_id=str(conversation.id), title=conversation.title)
+
+
+# ======================================================================================
+# Saved chats: History list, open a chat, delete a chat
+# ======================================================================================
+class ConversationSummary(BaseModel):
+    id: str
+    title: str
+    preview: Optional[str] = None
+    updated_at: str
+
+
+class StoredMessageOut(BaseModel):
+    id: int
+    role: str
+    content: str
+    created_at: str
+
+
+class ConversationDetail(BaseModel):
+    id: str
+    title: str
+    messages: list[StoredMessageOut]
 
 
 @router.get("/conversations", response_model=list[ConversationSummary])
 def list_conversations(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    rows = (
+    convos = (
         db.query(AdvisorConversation)
         .filter(AdvisorConversation.user_id == str(current_user.id))
         .order_by(AdvisorConversation.updated_at.desc())
-        .limit(MAX_CONVERSATIONS)
+        .limit(MAX_SAVED_CHATS)
         .all()
     )
-    return [
-        ConversationSummary(id=r.id, title=r.title, preview=r.preview, updated_at=r.updated_at)
-        for r in rows
-    ]
+    out: list[ConversationSummary] = []
+    for c in convos:
+        last = (
+            db.query(AdvisorMessage)
+            .filter(AdvisorMessage.conversation_id == c.id, AdvisorMessage.role == "assistant")
+            .order_by(AdvisorMessage.id.desc())
+            .first()
+        )
+        preview = " ".join(last.content.split())[:140] if last else None
+        out.append(ConversationSummary(id=str(c.id), title=c.title, preview=preview, updated_at=_iso(c.updated_at)))
+    return out
 
 
 @router.get("/conversations/{conversation_id}", response_model=ConversationDetail)
@@ -645,19 +557,19 @@ def get_conversation(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    convo = _get_owned_conversation(db, conversation_id, str(current_user.id))
+    conversation = _own_conversation(db, conversation_id, str(current_user.id))
+    if conversation is None:
+        raise HTTPException(status_code=404, detail="Chat not found.")
     rows = (
         db.query(AdvisorMessage)
-        .filter(AdvisorMessage.conversation_id == convo.id)
+        .filter(AdvisorMessage.conversation_id == conversation.id)
         .order_by(AdvisorMessage.id.asc())
         .all()
     )
     return ConversationDetail(
-        id=convo.id,
-        title=convo.title,
-        messages=[
-            StoredMessage(id=r.id, role=r.role, content=r.content, created_at=r.created_at) for r in rows
-        ],
+        id=str(conversation.id),
+        title=conversation.title,
+        messages=[StoredMessageOut(id=r.id, role=r.role, content=r.content, created_at=_iso(r.created_at)) for r in rows],
     )
 
 
@@ -667,7 +579,10 @@ def delete_conversation(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    convo = _get_owned_conversation(db, conversation_id, str(current_user.id))
-    _delete_conversation_rows(db, [convo.id])
+    conversation = _own_conversation(db, conversation_id, str(current_user.id))
+    if conversation is None:
+        raise HTTPException(status_code=404, detail="Chat not found.")
+    db.query(AdvisorMessage).filter(AdvisorMessage.conversation_id == conversation.id).delete()
+    db.delete(conversation)
     db.commit()
-    return None
+    return Response(status_code=204)
