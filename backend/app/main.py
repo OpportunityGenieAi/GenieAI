@@ -1,4 +1,6 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 from sqlalchemy import text
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -11,6 +13,22 @@ from app.routers import settings as settings_router
 from app.seed_data import SEED_SCHOLARSHIPS
 
 app = FastAPI(title=settings.APP_NAME, version="0.1.0")
+
+
+def _validation_message(errors) -> str:
+    parts = []
+    for e in errors:
+        loc = [str(x) for x in e.get("loc", []) if x != "body"]
+        msg = e.get("msg", "invalid value")
+        parts.append(f"{'.'.join(loc)}: {msg}" if loc else msg)
+    return "; ".join(parts)[:300]
+
+
+@app.exception_handler(RequestValidationError)
+async def on_validation_error(request: Request, exc: RequestValidationError):
+    message = _validation_message(exc.errors())
+    print(f"[422] {request.method} {request.url.path} -> {message}")  # no user content is logged
+    return JSONResponse(status_code=422, content={"detail": message})
 
 app.add_middleware(
     CORSMiddleware,
