@@ -2,6 +2,7 @@ import hashlib
 import logging
 import re
 import time
+import uuid
 from datetime import datetime, timezone
 from typing import Literal, Optional
 
@@ -14,6 +15,7 @@ from app.config import settings
 from app.database import get_db
 from app.deps import get_current_user
 from app.models import AcademicProfile, AppSetting, GpaProfile, Scholarship, User
+from app.models_chat import AdvisorConversation, AdvisorMessage
 from app.schemas import AdvisorResponse
 from app.services.advisor_knowledge import ADVISOR_CHAT_SYSTEM_PROMPT
 from app.services.match_engine import compute_match_score
@@ -43,17 +45,21 @@ Never suggest fabricating volunteering, publications, or achievements.
 Be encouraging without being dishonest: reframe weaknesses as "areas to
 strengthen," not verdicts on the student's chances."""
 
-GENERIC_ERROR = "Couldn't reach the AI advisor just now — try again in a moment."
-BUSY_ERROR = "The AI advisor is busy right now — please try again in a few minutes."
+GENERIC_ERROR = "Couldn't reach the advisor just now — try again in a moment."
+BUSY_ERROR = "The advisor is busy right now — please try again in a few minutes."
 
 # --- limits for the chat endpoint -------------------------------------------------------
 MAX_MESSAGE_CHARS = 15000      # one message (a pasted statement of purpose fits easily)
 MAX_HISTORY_MESSAGES = 12      # how much of the conversation is sent to the model
 MAX_TOTAL_CHARS = 40000        # cap on the whole conversation sent to the model
 CHAT_MAX_REQUESTS = 20         # per user ...
-CHAT_WINDOW_SECONDS = 600      # ... per 10 minutes (protects the free Gemini quota)
+CHAT_WINDOW_SECONDS = 600      # ... per 10 minutes (protects the Gemini quota)
 
-# Saves free-tier quota for /recommend: the same student asking again with the same profile
+# --- saved chats ------------------------------------------------------------------------
+MAX_CONVERSATIONS = 50              # per student; the oldest is removed when a new one would exceed this
+MAX_MESSAGES_PER_CONVERSATION = 200
+
+# Saves quota for /recommend: the same student asking again with the same profile
 # within 10 minutes gets the previous answer instead of a new model call.
 CACHE_TTL_SECONDS = 600
 _CACHE: dict[str, tuple[float, str, str]] = {}  # user_id -> (timestamp, prompt_hash, text)
@@ -151,7 +157,7 @@ def _generate(db: Session, system_prompt: str, turns: list[dict], max_tokens: in
     if not gemini_key and not anthropic_key:
         raise HTTPException(
             status_code=503,
-            detail="AI advisor isn't configured yet — set GEMINI_API_KEY (or ANTHROPIC_API_KEY) on the server.",
+            detail="The advisor isn't configured yet — set GEMINI_API_KEY (or ANTHROPIC_API_KEY) on the server.",
         )
     try:
         if gemini_key:
@@ -160,7 +166,7 @@ def _generate(db: Session, system_prompt: str, turns: list[dict], max_tokens: in
     except HTTPException:
         raise
     except Exception:
-        logger.exception("AI advisor call failed")
+        logger.exception("Advisor call failed")
         raise HTTPException(status_code=502, detail=GENERIC_ERROR)
 
 
@@ -217,7 +223,7 @@ second person, encouraging but realistic."""
 
 
 # ======================================================================================
-# POST /advisor/chat  (open conversation, document feedback, scholarship database)
+# POST /advisor/chat  (conversation, document feedback, scholarship database, saved chats)
 # ======================================================================================
 class ChatTurn(BaseModel):
     role: Literal["user", "assistant"]
@@ -225,11 +231,38 @@ class ChatTurn(BaseModel):
 
 
 class ChatRequest(BaseModel):
-    messages: list[ChatTurn]
+    # Current app: send only the new `message` (and `conversation_id` to continue a saved chat);
+    # the server keeps and reloads the history.
+    message: Optional[str] = None
+    conversation_id: Optional[str] = None
+    # Older app versions send the whole conversation in `messages`; nothing is saved for those.
+    messages: Optional[list[ChatTurn]] = None
 
 
 class ChatResponse(BaseModel):
     text: str
+    conversation_id: Optional[str] = None
+    title: Optional[str] = None
+
+
+class ConversationSummary(BaseModel):
+    id: str
+    title: str
+    preview: Optional[str] = None
+    updated_at: datetime
+
+
+class StoredMessage(BaseModel):
+    id: int
+    role: str
+    content: str
+    created_at: datetime
+
+
+class ConversationDetail(BaseModel):
+    id: str
+    title: str
+    messages: list[StoredMessage]
 
 
 def _clean_turns(messages: list[ChatTurn]) -> list[dict]:
@@ -411,18 +444,189 @@ def _build_chat_system_prompt(
     return "\n\n".join([ADVISOR_CHAT_SYSTEM_PROMPT, f"TODAY'S DATE: {today}", profile_block, "\n\n".join(db_parts)])
 
 
+# ---------- saved chats helpers ----------
+def _valid_uuid(value: str) -> bool:
+    try:
+        uuid.UUID(str(value))
+        return True
+    except ValueError:
+        return False
+
+
+def _get_owned_conversation(db: Session, conversation_id: str, user_id: str) -> AdvisorConversation:
+    if not _valid_uuid(conversation_id):
+        raise HTTPException(status_code=404, detail="Chat not found.")
+    convo = (
+        db.query(AdvisorConversation)
+        .filter(AdvisorConversation.id == conversation_id, AdvisorConversation.user_id == user_id)
+        .first()
+    )
+    if not convo:
+        raise HTTPException(status_code=404, detail="Chat not found.")
+    return convo
+
+
+def _make_title(text: str) -> str:
+    first = ""
+    for line in (text or "").splitlines():
+        if line.strip():
+            first = line.strip()
+            break
+    first = re.sub(r"\s+", " ", first)
+    if not first:
+        return "New chat"
+    return first[:57] + "..." if len(first) > 60 else first
+
+
+def _snippet(text: str, limit: int = 100) -> str:
+    flat = re.sub(r"\s+", " ", text or "").strip()
+    return flat[: limit - 3] + "..." if len(flat) > limit else flat
+
+
+def _delete_conversation_rows(db: Session, conversation_ids: list[str]) -> None:
+    if not conversation_ids:
+        return
+    db.query(AdvisorMessage).filter(AdvisorMessage.conversation_id.in_(conversation_ids)).delete(
+        synchronize_session=False
+    )
+    db.query(AdvisorConversation).filter(AdvisorConversation.id.in_(conversation_ids)).delete(
+        synchronize_session=False
+    )
+
+
+def _trim_conversations(db: Session, user_id: str) -> None:
+    """Keep each student's saved chats under MAX_CONVERSATIONS by removing the oldest ones."""
+    rows = (
+        db.query(AdvisorConversation.id)
+        .filter(AdvisorConversation.user_id == user_id)
+        .order_by(AdvisorConversation.updated_at.asc())
+        .all()
+    )
+    excess = len(rows) - (MAX_CONVERSATIONS - 1)
+    if excess > 0:
+        _delete_conversation_rows(db, [r[0] for r in rows[:excess]])
+
+
 @router.post("/chat", response_model=ChatResponse)
 def chat(
     payload: ChatRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    turns = _clean_turns(payload.messages)
-    _check_rate_limit(str(current_user.id))
+    user_id = str(current_user.id)
+    convo: Optional[AdvisorConversation] = None
+    new_text: Optional[str] = None
+
+    if payload.message is not None:
+        new_text = payload.message.strip()
+        if not new_text:
+            raise HTTPException(status_code=400, detail="Please type a question or paste your text.")
+        if len(new_text) > MAX_MESSAGE_CHARS:
+            raise HTTPException(
+                status_code=400,
+                detail=f"That message is too long (the limit is {MAX_MESSAGE_CHARS:,} characters). "
+                       "Please send it in two parts.",
+            )
+        history: list[ChatTurn] = []
+        if payload.conversation_id:
+            convo = _get_owned_conversation(db, payload.conversation_id, user_id)
+            count = db.query(AdvisorMessage).filter(AdvisorMessage.conversation_id == convo.id).count()
+            if count >= MAX_MESSAGES_PER_CONVERSATION:
+                raise HTTPException(
+                    status_code=400,
+                    detail="This chat is very long — please start a new chat to keep going.",
+                )
+            rows = (
+                db.query(AdvisorMessage)
+                .filter(AdvisorMessage.conversation_id == convo.id)
+                .order_by(AdvisorMessage.id.desc())
+                .limit(MAX_HISTORY_MESSAGES)
+                .all()
+            )
+            rows.reverse()
+            history = [ChatTurn(role=r.role, content=r.content) for r in rows]
+        turns = _clean_turns(history + [ChatTurn(role="user", content=new_text)])
+    elif payload.messages:
+        turns = _clean_turns(payload.messages)  # older app versions: not saved
+    else:
+        raise HTTPException(status_code=400, detail="Please type a question or paste your text.")
+
+    _check_rate_limit(user_id)
 
     gpa = db.query(GpaProfile).filter(GpaProfile.user_id == current_user.id).first()
     academic = db.query(AcademicProfile).filter(AcademicProfile.user_id == current_user.id).first()
 
     system_prompt = _build_chat_system_prompt(db, gpa, academic, turns)
     text = _generate(db, system_prompt, turns, 4096)
-    return ChatResponse(text=text)
+
+    if new_text is None:
+        return ChatResponse(text=text)
+
+    # Save the exchange (user message + reply) only after the model answered, so a failed
+    # attempt never leaves a half-finished conversation behind.
+    try:
+        if convo is None:
+            _trim_conversations(db, user_id)
+            convo = AdvisorConversation(user_id=user_id, title=_make_title(new_text))
+            db.add(convo)
+            db.flush()
+        db.add(AdvisorMessage(conversation_id=convo.id, role="user", content=new_text))
+        db.flush()
+        db.add(AdvisorMessage(conversation_id=convo.id, role="assistant", content=text))
+        convo.preview = _snippet(text)
+        convo.updated_at = datetime.now(timezone.utc)
+        db.commit()
+        return ChatResponse(text=text, conversation_id=convo.id, title=convo.title)
+    except Exception:
+        db.rollback()
+        logger.exception("Could not save advisor conversation")
+        return ChatResponse(text=text)  # the student still gets the answer, just not saved
+
+
+@router.get("/conversations", response_model=list[ConversationSummary])
+def list_conversations(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    rows = (
+        db.query(AdvisorConversation)
+        .filter(AdvisorConversation.user_id == str(current_user.id))
+        .order_by(AdvisorConversation.updated_at.desc())
+        .limit(MAX_CONVERSATIONS)
+        .all()
+    )
+    return [
+        ConversationSummary(id=r.id, title=r.title, preview=r.preview, updated_at=r.updated_at)
+        for r in rows
+    ]
+
+
+@router.get("/conversations/{conversation_id}", response_model=ConversationDetail)
+def get_conversation(
+    conversation_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    convo = _get_owned_conversation(db, conversation_id, str(current_user.id))
+    rows = (
+        db.query(AdvisorMessage)
+        .filter(AdvisorMessage.conversation_id == convo.id)
+        .order_by(AdvisorMessage.id.asc())
+        .all()
+    )
+    return ConversationDetail(
+        id=convo.id,
+        title=convo.title,
+        messages=[
+            StoredMessage(id=r.id, role=r.role, content=r.content, created_at=r.created_at) for r in rows
+        ],
+    )
+
+
+@router.delete("/conversations/{conversation_id}", status_code=204)
+def delete_conversation(
+    conversation_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    convo = _get_owned_conversation(db, conversation_id, str(current_user.id))
+    _delete_conversation_rows(db, [convo.id])
+    db.commit()
+    return None
