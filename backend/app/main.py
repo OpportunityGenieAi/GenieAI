@@ -9,6 +9,7 @@ from app.config import settings
 from app.database import Base, SessionLocal, engine
 from app.models import Scholarship
 from app.routers import advisor, auth, billing, profile, scholarships, share, tracker
+from app.routers import notifications
 from app.routers import settings as settings_router
 from app.seed_data import SEED_SCHOLARSHIPS
 
@@ -48,6 +49,7 @@ app.include_router(advisor.router)
 app.include_router(billing.router)
 app.include_router(settings_router.router)
 app.include_router(share.router)
+app.include_router(notifications.router)
 
 
 @app.on_event("startup")
