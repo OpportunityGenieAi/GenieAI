@@ -571,7 +571,7 @@ def chat(
         history: list[ChatTurn] = []
         if payload.conversation_id:
             convo = _get_owned_conversation(db, payload.conversation_id, user_id)
-            count = db.query(AdvisorMessage).filter(AdvisorMessage.conversation_id == convo.id).count()
+            count = db.query(AdvisorMessage).filter(AdvisorMessage.conversation_id == str(convo.id)).count()
             if count >= MAX_MESSAGES_PER_CONVERSATION:
                 raise HTTPException(
                     status_code=400,
@@ -579,7 +579,7 @@ def chat(
                 )
             rows = (
                 db.query(AdvisorMessage)
-                .filter(AdvisorMessage.conversation_id == convo.id)
+                .filter(AdvisorMessage.conversation_id == str(convo.id))
                 .order_by(AdvisorMessage.id.desc())
                 .limit(MAX_HISTORY_MESSAGES)
                 .all()
@@ -611,13 +611,13 @@ def chat(
             convo = AdvisorConversation(user_id=user_id, title=_make_title(new_text))
             db.add(convo)
             db.flush()
-        db.add(AdvisorMessage(conversation_id=convo.id, role="user", content=new_text))
+        db.add(AdvisorMessage(conversation_id=str(convo.id), role="user", content=new_text))
         db.flush()
-        db.add(AdvisorMessage(conversation_id=convo.id, role="assistant", content=text))
+        db.add(AdvisorMessage(conversation_id=str(convo.id), role="assistant", content=text))
         convo.preview = _snippet(text)
         convo.updated_at = datetime.now(timezone.utc)
         db.commit()
-        return ChatResponse(text=text, conversation_id=convo.id, title=convo.title)
+        return ChatResponse(text=text, conversation_id=str(convo.id), title=convo.title)
     except Exception:
         db.rollback()
         logger.exception("Could not save advisor conversation")
@@ -634,7 +634,7 @@ def list_conversations(db: Session = Depends(get_db), current_user: User = Depen
         .all()
     )
     return [
-        ConversationSummary(id=r.id, title=r.title, preview=r.preview, updated_at=r.updated_at)
+        ConversationSummary(id=str(r.id), title=r.title, preview=r.preview, updated_at=r.updated_at)
         for r in rows
     ]
 
@@ -648,12 +648,12 @@ def get_conversation(
     convo = _get_owned_conversation(db, conversation_id, str(current_user.id))
     rows = (
         db.query(AdvisorMessage)
-        .filter(AdvisorMessage.conversation_id == convo.id)
+        .filter(AdvisorMessage.conversation_id == str(convo.id))
         .order_by(AdvisorMessage.id.asc())
         .all()
     )
     return ConversationDetail(
-        id=convo.id,
+        id=str(convo.id),
         title=convo.title,
         messages=[
             StoredMessage(id=r.id, role=r.role, content=r.content, created_at=r.created_at) for r in rows
@@ -668,6 +668,6 @@ def delete_conversation(
     current_user: User = Depends(get_current_user),
 ):
     convo = _get_owned_conversation(db, conversation_id, str(current_user.id))
-    _delete_conversation_rows(db, [convo.id])
+    _delete_conversation_rows(db, [str(convo.id)])
     db.commit()
     return None
