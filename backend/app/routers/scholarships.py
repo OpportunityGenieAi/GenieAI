@@ -1,7 +1,7 @@
 import uuid
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -9,6 +9,7 @@ from app.deps import get_current_admin, get_current_user_optional
 from app.models import AcademicProfile, GpaProfile, Scholarship, User
 from app.schemas import ScholarshipIn, ScholarshipOut
 from app.services.match_engine import compute_match_score
+from app.services.push import notify_new_scholarship
 
 router = APIRouter(prefix="/scholarships", tags=["scholarships"])
 
@@ -81,11 +82,12 @@ def _region_of(country: str) -> str:
 
 
 @router.post("", response_model=ScholarshipOut, status_code=201)
-def create_scholarship(payload: ScholarshipIn, db: Session = Depends(get_db), _admin: User = Depends(get_current_admin)):
+def create_scholarship(payload: ScholarshipIn, background: BackgroundTasks, db: Session = Depends(get_db), _admin: User = Depends(get_current_admin)):
     scholarship = Scholarship(**payload.model_dump())
     db.add(scholarship)
     db.commit()
     db.refresh(scholarship)
+    background.add_task(notify_new_scholarship, str(scholarship.id))
     return ScholarshipOut.model_validate(scholarship)
 
 
