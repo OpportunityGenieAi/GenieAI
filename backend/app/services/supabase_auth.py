@@ -95,3 +95,9 @@ def send_recovery_code(email: str) -> None:
 
 def update_password(access_token: str, new_password: str) -> None:
     _call("PUT", "/user", json={"password": new_password}, bearer=access_token)
+
+
+def sign_in_with_google(id_token: str) -> dict:
+    """Exchanges a Google ID token (from the app's native sign-in) for a Supabase session."""
+    return _call("POST", "/token", params={"grant_type": "id_token"},
+                 json={"provider": "google", "id_token": id_token})

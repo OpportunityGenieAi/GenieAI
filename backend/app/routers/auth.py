@@ -8,6 +8,7 @@ from app.schemas import (
     ForgotPasswordStart, ForgotPasswordVerify, LoginRequest, MessageResponse,
     ResendCodeRequest, SignupRequest, TokenResponse, UserOut, VerifyEmailRequest,
 )
+from app.schemas import GoogleLoginRequest
 from app.security import create_access_token, verify_password
 from app.services import supabase_auth
 from app.services.supabase_auth import SupabaseAuthError
@@ -82,6 +83,20 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
         raise
 
     user = _get_or_create_user(db, email, _name_from_supabase(session, email))
+    return _token_response(user)
+
+
+@router.post("/google", response_model=TokenResponse)
+def google_login(payload: GoogleLoginRequest, db: Session = Depends(get_db)):
+    """Signs in with a Google ID token. Supabase verifies it; the email comes from Supabase, not the app."""
+    session = supabase_auth.sign_in_with_google(payload.id_token)
+    supa_user = session.get("user") or {}
+    email = (supa_user.get("email") or "").lower()
+    if not email:
+        raise HTTPException(status_code=400, detail="Google didn't share an email address.")
+    meta = supa_user.get("user_metadata") or {}
+    name = (meta.get("name") or meta.get("full_name") or email.split("@")[0]).strip()
+    user = _get_or_create_user(db, email, name)
     return _token_response(user)
 
 
