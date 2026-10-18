@@ -1,415 +1,195 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Privacy Policy — OpportunityGenie AI</title>
 <style>
-  :root {
-    box-sizing: border-box;
-    padding-top: env(safe-area-inset-top, 0px);
-    padding-bottom: env(safe-area-inset-bottom, 0px);
-
-    --bg: #F7F8FC;
-    --card: #FFFFFF;
-    --ink: #1B1F2A;
-    --ink-soft: #4B5266;
-    --ink-faint: #7B8296;
-    --line: #E4E7F0;
-    --accent: #3D5CFF;
-    --accent-tint: #EEF1FB;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-      --bg: #12141C;
-      --card: #1A1D28;
-      --ink: #F0F1F5;
-      --ink-soft: #B6BACC;
-      --ink-faint: #7B8296;
-      --line: #2A2E3D;
-      --accent: #7C93FF;
-      --accent-tint: #1E2440;
-    }
-  }
-  :root[data-theme="dark"] {
-    --bg: #12141C;
-    --card: #1A1D28;
-    --ink: #F0F1F5;
-    --ink-soft: #B6BACC;
-    --ink-faint: #7B8296;
-    --line: #2A2E3D;
-    --accent: #7C93FF;
-    --accent-tint: #1E2440;
-  }
-
-  html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+  :root { --bg:#EEF1FB; --card:#fff; --ink:#1b2340; --soft:#55607f; --blue:#2f5bea; --line:#dfe4f5; }
   * { box-sizing: border-box; }
-
-  body {
-    margin: 0;
-    background: var(--bg);
-    color: var(--ink);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    line-height: 1.65;
-  }
-
-  .wrap {
-    max-width: 760px;
-    margin: 0 auto;
-    padding: 48px 24px 80px;
-  }
-
-  header.top {
-    margin-bottom: 8px;
-  }
-  .badge {
-    display: inline-block;
-    font-size: 12.5px;
-    font-weight: 700;
-    letter-spacing: 0.03em;
-    text-transform: uppercase;
-    color: var(--accent);
-    background: var(--accent-tint);
-    padding: 5px 12px;
-    border-radius: 999px;
-    margin-bottom: 18px;
-  }
-  h1 {
-    font-size: clamp(28px, 5vw, 36px);
-    line-height: 1.2;
-    margin: 0 0 8px;
-    letter-spacing: -0.01em;
-  }
-  .meta {
-    color: var(--ink-faint);
-    font-size: 14px;
-    margin-bottom: 40px;
-  }
-
-  section {
-    margin-bottom: 36px;
-  }
-  h2 {
-    font-size: 19px;
-    margin: 0 0 12px;
-    padding-top: 4px;
-  }
-  h3 {
-    font-size: 15.5px;
-    margin: 20px 0 8px;
-    color: var(--ink-soft);
-  }
-  p {
-    margin: 0 0 14px;
-    color: var(--ink-soft);
-    font-size: 15px;
-  }
-  ul, ol {
-    margin: 0 0 14px;
-    padding-left: 22px;
-    color: var(--ink-soft);
-    font-size: 15px;
-  }
-  li { margin-bottom: 8px; }
-  strong { color: var(--ink); }
-  a { color: var(--accent); }
-
-  .card {
-    background: var(--card);
-    border: 1px solid var(--line);
-    border-radius: 16px;
-    padding: 20px 22px;
-    margin-bottom: 14px;
-  }
-  .card h3 { margin-top: 0; color: var(--ink); }
-
-  .toc {
-    background: var(--card);
-    border: 1px solid var(--line);
-    border-radius: 16px;
-    padding: 20px 24px;
-    margin-bottom: 40px;
-  }
-  .toc p { margin-bottom: 10px; font-weight: 700; color: var(--ink); font-size: 14px; }
-  .toc ol { margin: 0; padding-left: 20px; font-size: 14px; }
-  .toc li { margin-bottom: 6px; }
-  .toc a { color: var(--accent); text-decoration: none; }
-  .toc a:hover { text-decoration: underline; }
-
-  .contact-box {
-    background: var(--accent-tint);
-    border-radius: 16px;
-    padding: 22px 24px;
-    margin-top: 8px;
-  }
-  .contact-box p { color: var(--ink); margin-bottom: 4px; }
-  .contact-box a { color: var(--accent); font-weight: 700; text-decoration: none; }
-
-  hr {
-    border: none;
-    border-top: 1px solid var(--line);
-    margin: 40px 0;
-  }
-
-  footer {
-    color: var(--ink-faint);
-    font-size: 12.5px;
-    text-align: center;
-    padding-top: 20px;
-  }
-
-  table { width: 100%; border-collapse: collapse; font-size: 14px; margin-bottom: 14px; }
-  th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--line); color: var(--ink-soft); vertical-align: top; }
-  th { color: var(--ink); font-size: 13px; text-transform: uppercase; letter-spacing: 0.02em; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; }
+  main { max-width: 820px; margin: 0 auto; padding: 28px 18px 60px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:16px; padding: 28px 26px; }
+  .eyebrow { color:var(--blue); font-weight:700; font-size:13px; letter-spacing:.06em; text-transform:uppercase; }
+  h1 { margin:6px 0 4px; font-size:30px; line-height:1.2; }
+  h2 { margin:34px 0 8px; font-size:21px; padding-top:6px; border-top:1px solid var(--line); }
+  h3 { margin:20px 0 4px; font-size:16.5px; }
+  p, li { color:var(--ink); }
+  .meta { color:var(--soft); font-size:14px; margin:0 0 18px; }
+  a { color:var(--blue); }
+  nav ol { columns:2; column-gap:30px; padding-left:20px; margin:8px 0 0; }
+  nav li { margin-bottom:3px; break-inside:avoid; }
+  table { width:100%; border-collapse:collapse; margin:10px 0; font-size:14.5px; }
+  th, td { text-align:left; vertical-align:top; padding:9px 10px; border:1px solid var(--line); }
+  th { background:#f4f6fd; }
+  .note { background:#f4f6fd; border-left:4px solid var(--blue); border-radius:8px; padding:10px 14px; margin:14px 0; }
+  footer { color:var(--soft); font-size:13.5px; margin-top:30px; border-top:1px solid var(--line); padding-top:14px; }
+  @media (max-width:620px){ nav ol{columns:1;} .card{padding:22px 18px;} h1{font-size:25px;} }
 </style>
 </head>
 <body>
-<div class="wrap">
+<main>
+<div class="card">
 
-  <header class="top">
-    <span class="badge">Privacy Policy</span>
-    <h1>OpportunityGenie AI</h1>
-    <div class="meta">Effective date: September 19, 2026 &nbsp;·&nbsp; Last updated: October 3, 2026</div>
-  </header>
+<div class="eyebrow">Privacy Policy</div>
+<h1>OpportunityGenie AI</h1>
+<p class="meta">Effective date: September 19, 2026 · Last updated: October 18, 2026</p>
 
-  <p>
-    This Privacy Policy explains what information OpportunityGenie AI ("the App," "we," "us," or "our")
-    collects, how we use it, and the choices you have. OpportunityGenie AI helps students find, evaluate,
-    and track scholarship and academic opportunities, including GPA conversion tools and application
-    tracking. This app is intended for use by adults and university-level students (18 and older) and is
-    not directed at children.
-  </p>
-  <p>
-    By using OpportunityGenie AI, you agree to the collection and use of information in accordance with
-    this policy.
-  </p>
+<p>This Privacy Policy explains what information OpportunityGenie AI ("the App," "we," "us," or "our") collects, how we use and share it, and the choices you have. OpportunityGenie AI helps students find, evaluate, and track scholarship and academic opportunities, with tools such as GPA conversion, scholarship matching, an AI advisor, application tracking, and notifications about new scholarships. The App is intended for adults and university-level students (18 and older) and is not directed at children.</p>
+<p>By using OpportunityGenie AI, you agree to the collection and use of information as described in this policy.</p>
 
-  <div class="toc">
-    <p>On this page</p>
-    <ol>
-      <li><a href="#info-we-collect">Information we collect</a></li>
-      <li><a href="#how-we-use">How we use your information</a></li>
-      <li><a href="#advertising">Advertising (Google AdMob)</a></li>
-      <li><a href="#payments">Payments &amp; subscriptions</a></li>
-      <li><a href="#third-parties">Third-party services we use</a></li>
-      <li><a href="#storage-security">Data storage &amp; security</a></li>
-      <li><a href="#retention">Data retention</a></li>
-      <li><a href="#your-rights">Your rights &amp; choices</a></li>
-      <li><a href="#delete-account">How to delete your account</a></li>
-      <li><a href="#children">Children's privacy</a></li>
-      <li><a href="#changes">Changes to this policy</a></li>
-      <li><a href="#contact">Contact us</a></li>
-    </ol>
-  </div>
+<nav>
+<strong>On this page</strong>
+<ol>
+  <li><a href="#info-we-collect">Information we collect</a></li>
+  <li><a href="#how-we-use">How we use your information</a></li>
+  <li><a href="#notifications">Push notifications</a></li>
+  <li><a href="#google-signin">Sign in with Google</a></li>
+  <li><a href="#ai-advisor">AI advisor</a></li>
+  <li><a href="#advertising">Advertising (Google AdMob)</a></li>
+  <li><a href="#payments">Payments &amp; subscriptions</a></li>
+  <li><a href="#third-parties">Service providers</a></li>
+  <li><a href="#sharing">How we share information</a></li>
+  <li><a href="#storage-security">Data storage &amp; security</a></li>
+  <li><a href="#transfers">International data transfers</a></li>
+  <li><a href="#retention">Data retention</a></li>
+  <li><a href="#your-rights">Your rights &amp; choices</a></li>
+  <li><a href="#delete-account">How to delete your account</a></li>
+  <li><a href="#children">Children's privacy</a></li>
+  <li><a href="#changes">Changes to this policy</a></li>
+  <li><a href="#contact">Contact us</a></li>
+</ol>
+</nav>
 
-  <section id="info-we-collect">
-    <h2>1. Information we collect</h2>
-    <p>We collect the following categories of information:</p>
+<h2 id="info-we-collect">1. Information we collect</h2>
 
-    <div class="card">
-      <h3>Account information</h3>
-      <p>When you create an account, we collect your name, email address, and a password (stored only
-      as a secure one-way hash — we never store or can see your actual password). We also collect a
-      security question and answer for account recovery purposes.</p>
-    </div>
+<h3>Account information</h3>
+<p>When you sign up with email, we collect your name, email address, and password. Passwords are handled by our authentication provider and are stored only as a secure one-way hash. We never see or store your actual password. We also store your preferred language setting. A small number of older accounts created before we moved to our current authentication provider may have a password hash stored in our own database.</p>
+<p>If you sign in with Google, we receive your name and email address from Google (see <a href="#google-signin">Section 4</a>). We do not receive your Google password.</p>
 
-    <div class="card">
-      <h3>Academic &amp; profile information</h3>
-      <p>Information you choose to enter to get personalized results, which may include your GPA and
-      grading system, academic level, field of study, nationality, English test scores (e.g. IELTS),
-      years of work experience, publications, leadership and volunteering experience, and whether you
-      have supporting documents ready (CV, statement of purpose, recommendation letters).</p>
-    </div>
+<h3>Academic &amp; profile information</h3>
+<p>Information you choose to enter to get personalized results, which may include your GPA and grading system, academic level, field of study, nationality, English test scores (such as IELTS), years of work experience, publications, leadership and volunteering experience, and whether you have supporting documents ready (CV, statement of purpose, recommendation letters). We do not collect the documents themselves.</p>
 
-    <div class="card">
-      <h3>Scholarship tracking data</h3>
-      <p>Records of scholarships you save or track within the app, along with your self-reported
-      application status (e.g. saved, applied, interview, accepted, rejected).</p>
-    </div>
+<h3>Scholarship tracking data</h3>
+<p>Records of scholarships you save or track, along with your self-reported application status (for example saved, applied, interview, accepted, rejected).</p>
 
-    <div class="card">
-      <h3>Payment information</h3>
-      <p>If you subscribe to a premium tier, payments are processed by Stripe, our payment processor.
-      We do not collect or store your full card details — Stripe collects this directly. We retain a
-      Stripe customer reference ID and your subscription tier status.</p>
-    </div>
+<h3>AI advisor conversations</h3>
+<p>The messages you type to the AI advisor, and the replies you receive. To personalize answers, relevant information from your profile may be included with your message. See <a href="#ai-advisor">Section 5</a>.</p>
 
-    <div class="card">
-      <h3>Advertising &amp; device information</h3>
-      <p>We display ads through Google AdMob to support the free tier of the app. AdMob and its partners
-      may collect device identifiers (such as your advertising ID), general device information, and
-      approximate location to serve and measure ads. See <a href="#advertising">Section 3</a> for details.</p>
-    </div>
+<h3>Push notification information</h3>
+<p>If you allow notifications, we collect a push notification token (a device-specific identifier issued by a push notification service), your device platform (Android), and whether notifications are enabled for that device. The token is linked to your account so we can send you notifications. See <a href="#notifications">Section 3</a>.</p>
 
-    <div class="card">
-      <h3>Automatically collected technical information</h3>
-      <p>Like most apps, we automatically receive standard technical information when you use
-      OpportunityGenie AI, such as device type, operating system version, app version, and general
-      usage/crash logs, used to keep the app running reliably.</p>
-    </div>
-  </section>
+<h3>Payment information</h3>
+<p>If you subscribe to a premium tier, the purchase is made and paid for through Google Play (which may use Google Pay or another payment method saved in your Google account). We do not collect or store your card details or other payment credentials. We receive and keep purchase information from Google Play, such as your purchase token, order ID, product, and subscription status and renewal or expiry dates, so we can give you access to premium features.</p>
 
-  <section id="how-we-use">
-    <h2>2. How we use your information</h2>
-    <ul>
-      <li>To create and manage your account, and verify your identity for account recovery</li>
-      <li>To provide core features: GPA conversion, scholarship matching, and application tracking</li>
-      <li>To process subscription payments and manage your subscription tier</li>
-      <li>To operate, maintain, and improve the app, including diagnosing technical issues</li>
-      <li>To display advertising that supports the free tier of the app</li>
-      <li>To communicate with you about your account or important changes to the app</li>
-      <li>To comply with legal obligations where applicable</li>
-    </ul>
-    <p>We do not sell your personal information.</p>
-  </section>
+<h3>Advertising &amp; device information</h3>
+<p>We display ads through Google AdMob to support the free tier. AdMob and its partners may collect device identifiers (such as your advertising ID), general device information, IP address, and approximate location to serve and measure ads. See <a href="#advertising">Section 6</a>.</p>
 
-  <section id="advertising">
-    <h2>3. Advertising (Google AdMob)</h2>
-    <p>
-      OpportunityGenie AI uses Google AdMob to display banner and interstitial ads. Google AdMob may
-      collect and process data — including your device's advertising identifier, IP address, and general
-      location — to serve ads and measure their performance. This may include both personalized and
-      non-personalized advertising, depending on your device settings and region.
-    </p>
-    <p>
-      You can control ad personalization through your device's own privacy settings (for example,
-      resetting or limiting your advertising ID in your phone's system settings). For details on how
-      Google handles this data, see
-      <a href="https://policies.google.com/technologies/partner-sites" target="_blank" rel="noopener">Google's Partner Sites policy</a>
-      and <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google's Privacy Policy</a>.
-    </p>
-  </section>
+<h3>Automatically collected technical information</h3>
+<p>Like most apps, we automatically receive standard technical information when you use the App, such as device type, operating system version, app version, IP address, and general usage and crash logs. These are used to keep the App secure and reliable. The App also checks for app updates from an update service, which receives basic device and app-version information for that purpose.</p>
 
-  <section id="payments">
-    <h2>4. Payments &amp; subscriptions</h2>
-    <p>
-      Subscription payments are handled entirely by Stripe, a PCI-compliant third-party payment
-      processor. We never receive or store your full card number, CVC, or bank details. Stripe's own
-      privacy practices govern the payment data it collects — see
-      <a href="https://stripe.com/privacy" target="_blank" rel="noopener">Stripe's Privacy Policy</a>.
-    </p>
-  </section>
+<h3>Information we do not collect</h3>
+<p>We do not ask for access to your contacts, photos, microphone, camera, SMS, or precise location.</p>
 
-  <section id="third-parties">
-    <h2>5. Third-party services we use</h2>
-    <table>
-      <tr><th>Service</th><th>Purpose</th></tr>
-      <tr><td>Google AdMob</td><td>Displaying and measuring in-app advertising</td></tr>
-      <tr><td>Stripe</td><td>Processing subscription payments</td></tr>
-      <tr><td>Render</td><td>Hosting our backend servers and database</td></tr>
-    </table>
-    <p>Each of these providers processes data under their own privacy policies, in addition to this one.</p>
-  </section>
+<h2 id="how-we-use">2. How we use your information</h2>
+<ul>
+  <li>To create and manage your account and verify your identity, including sending confirmation and password-reset codes by email</li>
+  <li>To provide core features: GPA conversion, scholarship matching, the AI advisor, and application tracking</li>
+  <li>To send push notifications about new scholarships (see below)</li>
+  <li>To process subscription payments and manage your subscription tier</li>
+  <li>To operate, maintain, secure, and improve the App, including diagnosing technical issues and preventing abuse</li>
+  <li>To display advertising that supports the free tier</li>
+  <li>To communicate with you about your account or important changes to the App</li>
+  <li>To comply with legal obligations where applicable</li>
+</ul>
+<p><strong>We do not sell your personal information.</strong></p>
 
-  <section id="storage-security">
-    <h2>6. Data storage &amp; security</h2>
-    <p>
-      Your account and profile data is stored on secure servers hosted through Render. Data is
-      transmitted between the app and our servers using encrypted (HTTPS) connections. Passwords are
-      never stored in plain text — only as irreversible cryptographic hashes.
-    </p>
-    <p>
-      While we take reasonable steps to protect your information, no method of transmission or storage
-      is 100% secure, and we cannot guarantee absolute security.
-    </p>
-  </section>
+<h2 id="notifications">3. Push notifications</h2>
+<p>With your permission, the App sends push notifications when a new scholarship is added.</p>
+<ul>
+  <li><strong>What is sent:</strong> the scholarship's name, provider, country, and level. If you have a saved profile, the notification may also show how well the scholarship matches your profile (for example "82% match"). Matching is done on our servers using your profile. Users whose profile fits a scholarship poorly are not notified.</li>
+  <li><strong>How it is delivered:</strong> notifications travel through a push notification delivery service and Google's Firebase Cloud Messaging (FCM), which deliver them to your Android device. These services receive your push token and the notification content.</li>
+  <li><strong>Your control:</strong> you can turn notifications off at any time in your device settings (Settings &gt; Apps &gt; OpportunityGenie AI &gt; Notifications), or by declining the permission prompt. Logging out of the App also stops notifications to that device. If a token becomes invalid, we delete it automatically.</li>
+</ul>
+<p>Notifications are not used for advertising.</p>
 
-  <section id="retention">
-    <h2>7. Data retention</h2>
-    <p>
-      We retain your account and profile information for as long as your account remains active, or as
-      needed to provide you the app's features. If you request deletion of your account, we delete your
-      associated personal data within 30 days of verifying your request, except where we are required to
-      retain certain records (for example, payment and transaction records) for legal or accounting
-      purposes. See <a href="#delete-account">How to delete your account</a> for details.
-    </p>
-  </section>
+<h2 id="google-signin">4. Sign in with Google</h2>
+<p>You can create an account or log in using your Google account. When you do, Google shares your name and email address with us. Google tells us only what you authorize on its sign-in screen. We use this information to create and identify your account, in the same way as an email sign-up. Google processes your data under <a href="https://policies.google.com/privacy">Google's Privacy Policy</a>. You can review or remove the App's access in your Google Account settings under "Security &gt; Your connections to third-party apps and services."</p>
 
-  <section id="your-rights">
-    <h2>8. Your rights &amp; choices</h2>
-    <ul>
-      <li><strong>Access &amp; correction</strong> — You can review and update most of your profile information directly within the app.</li>
-      <li><strong>Deletion</strong> — You may request deletion of your account and associated data at any time. See <a href="#delete-account">How to delete your account</a> below.</li>
-      <li><strong>Ad personalization</strong> — You can limit ad tracking through your device's system settings.</li>
-    </ul>
-    <p>
-      Depending on where you live, you may have additional rights under applicable data protection laws
-      (such as the GDPR or CCPA), including the right to data portability or to object to certain
-      processing. Contact us to exercise any of these rights.
-    </p>
-  </section>
+<h2 id="ai-advisor">5. AI advisor</h2>
+<p>The AI advisor answers questions about scholarships and applications. When you send a message, we pass its text, and relevant profile details used to personalize the answer, to third-party AI providers so it can generate a reply. These providers process the data to produce the response under their own terms and privacy policies. Please do not enter sensitive personal information (such as passport numbers, financial account details, or health information) in advisor chats. AI-generated answers can be wrong, so check important details, such as deadlines and eligibility, on the scholarship's official website.</p>
 
-  <section id="delete-account">
-    <h2>9. How to delete your account</h2>
-    <p>
-      You can ask OpportunityGenie AI to delete your account and the data linked to it at any time.
-      Anyone can make this request, including people who have already uninstalled the app.
-    </p>
+<h2 id="advertising">6. Advertising (Google AdMob)</h2>
+<p>The App uses Google AdMob to display banner and interstitial ads. AdMob may collect and process data, including your device's advertising identifier, IP address, and approximate location, to serve ads and measure their performance. This may include personalized and non-personalized advertising, depending on your device settings and region. Where the law requires it, we ask for your consent before showing personalized ads.</p>
+<p>You can control ad personalization in your device settings (for example, by resetting or deleting your advertising ID in Android Settings &gt; Privacy &gt; Ads). See <a href="https://policies.google.com/technologies/partner-sites">Google's Partner Sites policy</a> and <a href="https://policies.google.com/privacy">Google's Privacy Policy</a>.</p>
 
-    <div class="card">
-      <h3>How to request deletion</h3>
-      <ol>
-        <li>Send an email to <a href="mailto:info@opportunitygenie.org?subject=Account%20deletion%20request">info@opportunitygenie.org</a> from the email address registered to your account.</li>
-        <li>Use the subject line: <strong>Account deletion request</strong>.</li>
-        <li>We will confirm your request, verify that it comes from the account owner, and delete your account within 30 days.</li>
-      </ol>
-    </div>
+<h2 id="payments">7. Payments &amp; subscriptions</h2>
+<p>Subscriptions are sold and billed through Google Play Billing. Google, not us, collects and processes your payment details, handles billing, renewals, refunds, and cancellation, and decides which payment methods are available (including Google Pay). We never receive or store your full card number, CVC, or bank details. Google's practices govern the payment data it collects. See <a href="https://policies.google.com/privacy">Google's Privacy Policy</a> and <a href="https://payments.google.com/payments/apis-secure/u/0/get_legal_document?ldo=0&amp;ldt=privacynotice">Google Payments Privacy Notice</a>. You can manage or cancel your subscription at any time in the Google Play Store under "Payments &amp; subscriptions &gt; Subscriptions."</p>
 
-    <div class="card">
-      <h3>Data we delete</h3>
-      <ul>
-        <li>Your account details: name, email address, password hash, and security question and answer</li>
-        <li>Your academic and profile information</li>
-        <li>Your saved scholarships and application tracking records</li>
-        <li>Your subscription tier status and the link between your account and your Stripe customer ID</li>
-      </ul>
-    </div>
+<h2 id="third-parties">8. Service providers</h2>
+<p>We use trusted third-party service providers to run the App. They process data on our behalf, only as needed to provide their services. These include Google (sign-in, push notification delivery, advertising through AdMob, and subscription billing through Google Play), an authentication and email delivery provider, a push notification and app update delivery service, third-party AI providers that generate advisor replies, and a cloud hosting provider for our servers and database. Each provider processes data under its own privacy policy, in addition to this one.</p>
 
-    <div class="card">
-      <h3>Data we may keep</h3>
-      <ul>
-        <li>Payment and transaction records that we or Stripe must retain for legal, tax, or accounting reasons, for the period required by law</li>
-        <li>Anonymized usage and diagnostic data that cannot identify you</li>
-      </ul>
-    </div>
+<h2 id="sharing">9. How we share information</h2>
+<p>We share information only with the service providers described in this policy, who help us run the App and are not permitted to use it for their own unrelated purposes (except as described for AdMob in Section 6). We may also disclose information if required by law, to protect the rights, safety, or security of our users or the App, or as part of a merger, acquisition, or sale of assets, in which case we will tell you before your data becomes subject to a different privacy policy. We do not sell your personal information, and we do not share it with data brokers.</p>
 
-    <p>
-      You can also ask us to delete only some of your data, without closing your account, by emailing the
-      same address and telling us which information you want removed. You can view this information on its own at
-      <a href="https://opportunitygenie.org/delete-account.html">opportunitygenie.org/delete-account.html</a>.
-    </p>
-  </section>
+<h2 id="storage-security">10. Data storage &amp; security</h2>
+<p>Your account and profile data is stored on secure servers hosted with a reputable cloud hosting provider. Data is transmitted between the App and our servers over encrypted (HTTPS) connections. Passwords are stored only as irreversible hashes, and your login session token is kept in your device's secure storage. Access to our administration tools is limited to authorized administrators.</p>
+<p>While we take reasonable steps to protect your information, no method of transmission or storage is 100% secure, and we cannot guarantee absolute security.</p>
 
-  <section id="children">
-    <h2>10. Children's privacy</h2>
-    <p>
-      OpportunityGenie AI is intended for use by adults and university-level students (18 years of age
-      or older) and is not directed at children under 18. We do not knowingly collect personal
-      information from children. If you believe a child has provided us with personal information,
-      please contact us so we can promptly delete it.
-    </p>
-  </section>
+<h2 id="transfers">11. International data transfers</h2>
+<p>Our service providers may process data in countries other than your own, including the United States and the European Union. Where required, we rely on appropriate safeguards offered by those providers for such transfers.</p>
 
-  <section id="changes">
-    <h2>11. Changes to this policy</h2>
-    <p>
-      We may update this Privacy Policy from time to time. If we make material changes, we will update
-      the "Last updated" date at the top of this page and, where appropriate, notify you within the app.
-      Continued use of the app after changes take effect constitutes acceptance of the revised policy.
-    </p>
-  </section>
+<h2 id="retention">12. Data retention</h2>
+<p>We keep your account and profile information while your account is active, or as needed to provide the App's features. If you ask us to delete your account, we delete your associated personal data within 30 days of verifying your request, except where we must keep certain records (such as payment and transaction records) for legal or accounting reasons. Push tokens are deleted when they become invalid or when your account is deleted. See <a href="#delete-account">How to delete your account</a>.</p>
 
-  <section id="contact">
-    <h2>12. Contact us</h2>
-    <div class="contact-box">
-      <p>If you have questions about this Privacy Policy or wish to exercise your data rights, contact us at:</p>
-      <p><a href="mailto:info@opportunitygenie.org">info@opportunitygenie.org</a></p>
-    </div>
-  </section>
+<h2 id="your-rights">13. Your rights &amp; choices</h2>
+<ul>
+  <li><strong>Access &amp; correction:</strong> you can review and update most of your profile information in the App.</li>
+  <li><strong>Deletion:</strong> you can request deletion of your account and data at any time. See <a href="#delete-account">Section 14</a>.</li>
+  <li><strong>Notifications:</strong> you can turn push notifications off in your device settings at any time.</li>
+  <li><strong>Ad personalization:</strong> you can limit ad tracking in your device's system settings.</li>
+  <li><strong>Google sign-in:</strong> you can revoke the App's access in your Google Account.</li>
+</ul>
+<p>Depending on where you live, you may have additional rights under data protection laws (such as the GDPR, the CCPA/CPRA, or Kenya's Data Protection Act, 2019), including the right to access a copy of your data, to data portability, to object to or restrict certain processing, and to lodge a complaint with your data protection authority. Contact us to exercise any of these rights.</p>
 
-  <hr />
-  <footer>OpportunityGenie AI — Privacy Policy · Effective September 19, 2026</footer>
+<h2 id="delete-account">14. How to delete your account</h2>
+<p>You can ask OpportunityGenie AI to delete your account and the data linked to it at any time. Anyone can make this request, including people who have already uninstalled the App.</p>
+<h3>How to request deletion</h3>
+<ol>
+  <li>Send an email to <a href="mailto:info@opportunitygenie.org?subject=Account%20deletion%20request">info@opportunitygenie.org</a> from the email address registered to your account.</li>
+  <li>Use the subject line: <strong>Account deletion request</strong>.</li>
+  <li>We will confirm your request, verify that it comes from the account owner, and delete your account within 30 days.</li>
+</ol>
+<h3>Data we delete</h3>
+<ul>
+  <li>Your account details: name, email address, password hash, and your sign-in record with our authentication provider</li>
+  <li>Your academic and profile information</li>
+  <li>Your saved scholarships and application tracking records</li>
+  <li>Your AI advisor conversation history stored on our servers, if any</li>
+  <li>Your push notification tokens</li>
+  <li>Your subscription status and the link between your account and your Google Play purchase records (purchase token and order ID)</li>
+</ul>
+<h3>Data we may keep</h3>
+<ul>
+  <li>Purchase and transaction records that we or Google must retain for legal, tax, or accounting reasons, for the period required by law</li>
+  <li>Deleting your account does not cancel a Google Play subscription. Please cancel it in the Google Play Store first so you are not billed again.</li>
+  <li>Anonymized usage and diagnostic data that cannot identify you</li>
+</ul>
+<p>You can also ask us to delete only some of your data, without closing your account, by emailing the same address and telling us what to remove. This information is also available on its own at <a href="https://opportunitygenie.org/delete-account.html">opportunitygenie.org/delete-account.html</a>.</p>
+
+<h2 id="children">15. Children's privacy</h2>
+<p>OpportunityGenie AI is intended for adults and university-level students (18 years of age or older) and is not directed at children under 18. We do not knowingly collect personal information from children. If you believe a child has given us personal information, please contact us so we can promptly delete it.</p>
+
+<h2 id="changes">16. Changes to this policy</h2>
+<p>We may update this Privacy Policy from time to time. If we make material changes, we will update the "Last updated" date at the top of this page and, where appropriate, notify you in the App. Continued use of the App after changes take effect means you accept the revised policy.</p>
+
+<h2 id="contact">17. Contact us</h2>
+<p>If you have questions about this Privacy Policy or want to exercise your data rights, contact us at:</p>
+<p><a href="mailto:info@opportunitygenie.org">info@opportunitygenie.org</a></p>
+
+<footer>OpportunityGenie AI — Privacy Policy · Effective September 19, 2026 · Last updated October 18, 2026</footer>
 
 </div>
+</main>
 </body>
 </html>
