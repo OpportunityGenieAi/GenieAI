@@ -21,6 +21,7 @@ from app.schemas import AppSettingIn, AppSettingOut
 router = APIRouter(prefix="/settings", tags=["settings"])
 
 PUBLIC_KEYS = {
+    "ads_enabled",
     "admob_banner_unit_id_ios",
     "admob_banner_unit_id_android",
     "admob_interstitial_unit_id_ios",
