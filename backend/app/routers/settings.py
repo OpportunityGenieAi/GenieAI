@@ -40,7 +40,15 @@ MANAGED_KEYS = PUBLIC_KEYS | {
 def get_public_settings(db: Session = Depends(get_db)):
     """No auth required — the app needs these (e.g. ad unit IDs) before login."""
     rows = db.query(AppSetting).filter(AppSetting.key.in_(PUBLIC_KEYS)).all()
-    return [AppSettingOut.model_validate(r) for r in rows]
+    result = [AppSettingOut.model_validate(r) for r in rows]
+    # Ads switch on automatically once a real Android banner or interstitial
+    # unit ID is saved, unless an admin has set ads_enabled explicitly.
+    saved = {r.key: r.value for r in rows}
+    if "ads_enabled" not in saved and (
+        saved.get("admob_banner_unit_id_android") or saved.get("admob_interstitial_unit_id_android")
+    ):
+        result.append(AppSettingOut(key="ads_enabled", value="true"))
+    return result
 
 
 @router.get("", response_model=list[AppSettingOut])
