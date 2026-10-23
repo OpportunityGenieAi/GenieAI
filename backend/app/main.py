@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, PlainTextResponse
 from sqlalchemy import text
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -94,6 +94,12 @@ def on_startup():
             db.close()
     except Exception as exc:  # a bad CSV must never stop the API booting
         print(f"[catalog] import skipped: {exc}")
+
+
+@app.get("/app-ads.txt", response_class=PlainTextResponse)
+def app_ads_txt():
+    # Authorised digital sellers file for AdMob verification.
+    return "google.com, pub-9273621287213519, DIRECT, f08c47fec0942fa0\n"
 
 
 @app.get("/health")
