@@ -2,11 +2,11 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.deps import get_current_user
+from app.deps import get_current_user, require_premium
 from app.models import Scholarship, TrackerEntry, User
 from app.schemas import TrackerEntryOut, TrackerStatusUpdate
 
-router = APIRouter(prefix="/tracker", tags=["tracker"])
+router = APIRouter(prefix="/tracker", tags=["tracker"], dependencies=[Depends(require_premium)])
 
 VALID_STATUSES = {"saved", "applied", "interview", "accepted", "rejected"}
 

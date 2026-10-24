@@ -38,12 +38,13 @@ class Settings(BaseSettings):
     ANTHROPIC_API_KEY: str = ""
     ANTHROPIC_MODEL: str = "claude-sonnet-4-6"
 
-    # --- billing (Stripe) — required only once you enable subscriptions ---
-    STRIPE_SECRET_KEY: str = ""
-    STRIPE_WEBHOOK_SECRET: str = ""
-    STRIPE_PRICE_ID_PREMIUM: str = ""
-    BILLING_SUCCESS_URL: str = "https://your-domain.example.com/billing/success"
-    BILLING_CANCEL_URL: str = "https://your-domain.example.com/billing/cancel"
+    # --- Google Play subscriptions (Premium) ---
+    GOOGLE_PLAY_PACKAGE_NAME: str = "opportunitygenie.org"
+    GOOGLE_PLAY_PRODUCT_ID: str = "premium_monthly"
+    GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: str = ""  # the whole service-account key, as one line
+    PLAY_RTDN_SECRET: str = ""                  # random string used in the Pub/Sub push URL
+    PREMIUM_GATING_STARTS_AT: str = ""          # e.g. 2026-12-01 (UTC); empty = Premium not enforced yet
+    PREMIUM_GRACE_DAYS: int = 14                # accounts created before that date keep access this long
 
     # --- CORS ---
     ALLOWED_ORIGINS: str = "http://localhost:3000,http://localhost:8080"

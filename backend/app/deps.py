@@ -40,3 +40,12 @@ def get_current_user_optional(
     if not email:
         return None
     return db.query(User).filter(User.email == email).first()
+
+
+def require_premium(user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> User:
+    """Premium-only endpoints. Open to everyone until PREMIUM_GATING_STARTS_AT, then paid users and the grace period."""
+    from app.services.play_billing import has_access
+
+    if not has_access(db, user):
+        raise HTTPException(status_code=402, detail="This feature is part of OpportunityGenie Premium.")
+    return user

@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.database import get_db
-from app.deps import get_current_user
+from app.deps import get_current_user, require_premium
 from app.models import AcademicProfile, AppSetting, GpaProfile, Scholarship, User
 from app.models_chat import AdvisorConversation, AdvisorMessage
 from app.schemas import AdvisorResponse
@@ -215,7 +215,7 @@ def _generate(db: Session, system_prompt: str, turns: list[dict], max_tokens: in
 # POST /advisor/recommend  (unchanged behaviour)
 # ======================================================================================
 @router.post("/recommend", response_model=AdvisorResponse)
-def get_recommendation(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def get_recommendation(db: Session = Depends(get_db), current_user: User = Depends(require_premium)):
     gpa = db.query(GpaProfile).filter(GpaProfile.user_id == current_user.id).first()
     academic = db.query(AcademicProfile).filter(AcademicProfile.user_id == current_user.id).first()
     if not gpa or not academic:
@@ -552,7 +552,7 @@ def _trim_conversations(db: Session, user_id: str) -> None:
 def chat(
     payload: ChatRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_premium),
 ):
     user_id = str(current_user.id)
     convo: Optional[AdvisorConversation] = None

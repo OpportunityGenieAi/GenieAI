@@ -9,6 +9,7 @@ from app.deps import get_current_admin, get_current_user_optional
 from app.models import AcademicProfile, GpaProfile, Scholarship, User
 from app.schemas import ScholarshipIn, ScholarshipOut
 from app.services.match_engine import compute_match_score
+from app.services.play_billing import has_access
 from app.services.push import notify_new_scholarship
 
 router = APIRouter(prefix="/scholarships", tags=["scholarships"])
@@ -41,7 +42,7 @@ def list_scholarships(
         scholarships = [s for s in scholarships if _region_of(s.country) == region]
 
     gpa_profile = academic_profile = None
-    if current_user:
+    if current_user and has_access(db, current_user):
         gpa_profile = db.query(GpaProfile).filter(GpaProfile.user_id == current_user.id).first()
         academic_profile = db.query(AcademicProfile).filter(AcademicProfile.user_id == current_user.id).first()
 

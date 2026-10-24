@@ -8,9 +8,10 @@ from fastapi.staticfiles import StaticFiles
 from app.config import settings
 from app.database import Base, SessionLocal, engine
 from app.models import Scholarship
-from app.routers import advisor, auth, billing, profile, scholarships, share, tracker
+from app.routers import advisor, auth, profile, scholarships, share, tracker
 from app.routers import notifications
 from app.routers import settings as settings_router
+from app.routers import subscription
 from app.seed_data import SEED_SCHOLARSHIPS
 
 app = FastAPI(title=settings.APP_NAME, version="0.1.0")
@@ -46,9 +47,9 @@ app.include_router(scholarships.router)
 app.include_router(profile.router)
 app.include_router(tracker.router)
 app.include_router(advisor.router)
-app.include_router(billing.router)
 app.include_router(settings_router.router)
 app.include_router(share.router)
+app.include_router(subscription.router)
 app.include_router(notifications.router)
 
 
