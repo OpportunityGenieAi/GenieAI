@@ -73,11 +73,13 @@ def _region_of(country: str) -> str:
     c = (country or "").lower()
     if "united kingdom" in c: return "UK"
     if "united states" in c: return "USA"
-    if any(x in c for x in ["germany", "france", "italy", "spain", "netherlands", "switzerland", "turkey", "europe"]):
+    if any(x in c for x in ["germany", "france", "italy", "spain", "netherlands", "switzerland", "turkey", "europe",
+                            "finland", "romania", "serbia", "estonia", "ireland", "denmark", "sweden", "norway",
+                            "austria", "belgium", "poland", "portugal", "hungary", "czech", "greece"]):
         return "Europe"
-    if any(x in c for x in ["africa", "zambia", "zimbabwe", "malawi"]):
+    if any(x in c for x in ["africa", "zambia", "zimbabwe", "malawi", "south africa", "kenya", "nigeria", "ghana"]):
         return "Africa"
-    if any(x in c for x in ["japan", "china", "korea", "asia"]):
+    if any(x in c for x in ["japan", "china", "korea", "asia", "vietnam", "saudi", "emirates", "qatar", "india"]):
         return "Asia"
     return "Other"
 
