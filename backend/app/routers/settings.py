@@ -26,6 +26,10 @@ PUBLIC_KEYS = {
     "admob_banner_unit_id_android",
     "admob_interstitial_unit_id_ios",
     "admob_interstitial_unit_id_android",
+    "admob_app_open_unit_id_ios",
+    "admob_app_open_unit_id_android",
+    "admob_native_unit_id_ios",
+    "admob_native_unit_id_android",
 }
 
 # Keys an admin is allowed to manage through this API at all (protects
