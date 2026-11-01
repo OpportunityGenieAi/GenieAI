@@ -1,8 +1,8 @@
 """Public share page for scholarships + Android App Links verification file.
 
-GET /s/{scholarship_id}               -> small web page: summary + "Open in the app" / "Get it on Google Play".
-                                         It never shows the official application link, so applying
-                                         is only possible inside the app.
+GET /s/{scholarship_id}               -> small web page that shows NO scholarship content: only "Install the app to view it"
+                                         with "Open in the app" / "Get it on Google Play". Viewing and applying
+                                         are only possible inside the app.
 GET /.well-known/assetlinks.json      -> lets Android open https://opportunitygenie.org/s/... directly in the app.
 """
 import html
@@ -15,13 +15,14 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import Scholarship
-from app.schemas import ScholarshipOut
 
 router = APIRouter(tags=["share"])
 
 ANDROID_PACKAGE = "opportunitygenie.org"
 SITE = "https://opportunitygenie.org"
 PLAY_URL = f"https://play.google.com/store/apps/details?id={ANDROID_PACKAGE}"
+# Same store page, tagged so Play Console shows how many installs came from shared links.
+PLAY_SHARE_URL = PLAY_URL + "&referrer=utm_source%3Dshare%26utm_medium%3Dlink"
 
 # SHA-256 certificate fingerprints allowed to open these links in the app.
 # 1) Play App Signing key (what people get from the Play Store) - required.
@@ -67,6 +68,7 @@ def _page(title: str, description: str, body: str, canonical: str = "") -> str:
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{html.escape(title)}</title>
+<meta name="robots" content="noindex">
 <meta name="description" content="{html.escape(description, quote=True)}">
 <meta property="og:site_name" content="OpportunityGenie AI">
 <meta property="og:type" content="website">
@@ -118,45 +120,22 @@ def share_page(scholarship_id: str, db: Session = Depends(get_db)):
     if not s:
         return HTMLResponse(_not_found_page(), status_code=404)
 
-    out = ScholarshipOut.model_validate(s)
-    esc = html.escape
-
-    meta_items = []
-    if out.country:
-        meta_items.append(f"<li>&#128205; {esc(out.country)}</li>")
-    if out.funding:
-        meta_items.append(f"<li>&#128176; {esc(out.funding)}</li>")
-    if out.deadline_window:
-        meta_items.append(f"<li>&#9200; Deadline: {esc(out.deadline_window)}</li>")
-    meta_html = f'<ul class="meta">{"".join(meta_items)}</ul>' if meta_items else ""
-
-    tags = [t for t in (out.tags or []) if t]
-    tags_html = (
-        '<div class="tags">' + "".join(f'<span class="tag">{esc(str(t))}</span>' for t in tags) + "</div>"
-        if tags
-        else ""
-    )
-
     intent = (
         f"intent://opportunitygenie.org/s/{scholarship_id}#Intent;scheme=https;"
         f"package={ANDROID_PACKAGE};S.browser_fallback_url={quote(PLAY_URL, safe='')};end"
     )
 
     body = f"""<div class="card">
-<h1>{esc(out.name)}</h1>
-<p class="provider">{esc(out.provider or "")}</p>
-<p class="blurb">{esc(out.blurb or "")}</p>
-{meta_html}
-{tags_html}
-<p class="note">To see the full details and apply, open this scholarship in the OpportunityGenie AI app.</p>
-<a id="open-app" class="btn primary" href="{esc(intent, quote=True)}">Open in the app</a>
-<a class="btn secondary" href="{PLAY_URL}">Get it on Google Play</a>
+<h1>A scholarship was shared with you</h1>
+<p class="blurb">Install OpportunityGenie AI to view this scholarship, see the full details and apply.</p>
+<p class="note">Already have the app? Tap &ldquo;Open in the app&rdquo;.</p>
+<a id="open-app" class="btn secondary" href="{html.escape(intent, quote=True)}">Open in the app</a>
+<a class="btn primary" href="{PLAY_SHARE_URL}">Get it on Google Play</a>
 </div>"""
 
-    description = (out.blurb or "A scholarship opportunity on OpportunityGenie AI.")[:200]
     page = _page(
-        f"{out.name} | OpportunityGenie AI",
-        description,
+        "A scholarship was shared with you | OpportunityGenie AI",
+        "Install OpportunityGenie AI to view this scholarship.",
         body,
         canonical=f"{SITE}/s/{scholarship_id}",
     )
