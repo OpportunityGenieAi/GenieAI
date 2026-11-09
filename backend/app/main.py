@@ -106,3 +106,11 @@ def app_ads_txt():
 @app.get("/health")
 def health():
     return {"status": "ok", "app": settings.APP_NAME, "environment": settings.ENVIRONMENT}
+
+
+# --- SEO website (served last so every API route above takes priority) ---
+from pathlib import Path as _Path
+
+_WEBSITE_DIR = _Path(__file__).resolve().parent.parent / "website"
+if _WEBSITE_DIR.is_dir():
+    app.mount("/", StaticFiles(directory=str(_WEBSITE_DIR), html=True), name="website")
