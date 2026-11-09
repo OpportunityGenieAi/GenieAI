@@ -22,7 +22,7 @@ p{margin:0}
 header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--surface);border-bottom:1px solid var(--line)}
 .bar{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:60px}
 .brand{font:600 1.15rem var(--font-d);color:var(--ink);text-decoration:none;display:flex;align-items:center;gap:10px}
-.brand i{width:30px;height:30px;border-radius:9px;background:var(--blue);display:grid;place-items:center;color:#fff;font-style:normal;font-size:1rem}
+.brand img{width:44px;height:44px;border-radius:10px;display:block}
 nav.main{display:flex;gap:20px;font-size:.95rem}
 nav.main a{color:var(--soft);text-decoration:none;font:600 .95rem var(--font-b)}
 nav.main a:hover{color:var(--blue-d)}

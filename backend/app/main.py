@@ -10,6 +10,8 @@ from app.database import Base, SessionLocal, engine
 from app.models import Scholarship
 from app.routers import advisor, auth, profile, scholarships, share, tracker
 from app.routers import notifications
+from app.routers import articles
+from app import article_model  # noqa: F401  (registers the articles table)
 from app.routers import settings as settings_router
 from app.routers import subscription
 from app.seed_data import SEED_SCHOLARSHIPS
@@ -51,6 +53,7 @@ app.include_router(settings_router.router)
 app.include_router(share.router)
 app.include_router(subscription.router)
 app.include_router(notifications.router)
+app.include_router(articles.router)
 
 
 @app.on_event("startup")
