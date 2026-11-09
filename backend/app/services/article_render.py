@@ -112,12 +112,24 @@ def _ld(obj) -> str:
     return '<script type="application/ld+json">' + json.dumps(obj, ensure_ascii=False).replace("</", "<\\/") + "</script>"
 
 
+MENU_JS = "<script>(function(){var b=document.querySelector('.burger'),n=document.getElementById('menu');if(!b||!n)return;function s(o){n.classList.toggle('open',o);b.setAttribute('aria-expanded',o);b.setAttribute('aria-label',o?'Close menu':'Open menu')}b.addEventListener('click',function(){s(!n.classList.contains('open'))});n.addEventListener('click',function(e){if(e.target.closest('a'))s(false)});document.addEventListener('keydown',function(e){if(e.key==='Escape')s(false)});window.addEventListener('resize',function(){if(innerWidth>980)s(false)})})();</script>"
+
+
 def header_html() -> str:
-    nav = "".join(f'<a href="/{s}/">{n}</a>' for s, n, _ in GUIDES[:4])
+    def a(href, label, cls=""):
+        return f'<a href="{href}"' + (f' class="{cls}"' if cls else "") + f">{label}</a>"
+
+    links = a("/", "Home", "m")
+    for k, (s, n, _) in enumerate(GUIDES):
+        links += a(f"/{s}/", n, "" if k < 4 else "m")
+    links += a("/articles/", "Guides")
+    links += f'<a class="btn m m-btn" href="{play("article_menu")}" rel="noopener">Install app</a>'
     return (
         f'<header class="top"><div class="wrap bar"><a class="brand" href="/"><img src="/logo-96.png" width="44" height="44" alt="{NAME} logo">{NAME}</a>'
-        f'<nav class="main" aria-label="Main">{nav}<a href="/articles/">Guides</a></nav>'
-        f'<a class="btn sm" href="{play("article_header")}" rel="noopener">Install app</a></div></header>'
+        f'<nav class="main" id="menu" aria-label="Main">{links}</nav>'
+        f'<div class="bar-r"><a class="btn sm" href="{play("article_header")}" rel="noopener">Install app</a>'
+        '<button class="burger" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="menu"><span></span><span></span><span></span></button></div></div></header>'
+        + MENU_JS
     )
 
 
