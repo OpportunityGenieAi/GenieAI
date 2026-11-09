@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /s/
+Disallow: /admin
+Sitemap: https://opportunitygenie.org/sitemap.xml
