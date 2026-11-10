@@ -26,7 +26,7 @@ STATIC_ARTICLES = [
     }
 ]
 
-STATIC_URLS = ["/"] + [f"/{g[0]}/" for g in GUIDES] + ["/articles/"] + [f"/articles/{a['slug']}/" for a in STATIC_ARTICLES]
+STATIC_URLS = ["/"] + [f"/{g[0]}/" for g in GUIDES] + ["/articles/", "/contact/"] + [f"/articles/{a['slug']}/" for a in STATIC_ARTICLES]
 
 
 def play(src: str) -> str:
@@ -112,7 +112,7 @@ def _ld(obj) -> str:
     return '<script type="application/ld+json">' + json.dumps(obj, ensure_ascii=False).replace("</", "<\\/") + "</script>"
 
 
-MENU_JS = "<script>(function(){var b=document.querySelector('.burger'),n=document.getElementById('menu');if(!b||!n)return;function s(o){n.classList.toggle('open',o);b.setAttribute('aria-expanded',o);b.setAttribute('aria-label',o?'Close menu':'Open menu')}b.addEventListener('click',function(){s(!n.classList.contains('open'))});n.addEventListener('click',function(e){if(e.target.closest('a'))s(false)});document.addEventListener('keydown',function(e){if(e.key==='Escape')s(false)});window.addEventListener('resize',function(){if(innerWidth>980)s(false)})})();</script>"
+MENU_JS = "<script>(function(){var b=document.querySelector('.burger'),n=document.getElementById('menu');if(!b||!n)return;function s(o){n.classList.toggle('open',o);b.setAttribute('aria-expanded',o);b.setAttribute('aria-label',o?'Close menu':'Open menu')}b.addEventListener('click',function(){s(!n.classList.contains('open'))});n.addEventListener('click',function(e){if(e.target.closest('a'))s(false)});document.addEventListener('keydown',function(e){if(e.key==='Escape')s(false)});window.addEventListener('resize',function(){if(innerWidth>1080)s(false)})})();</script>"
 
 
 def header_html() -> str:
@@ -121,8 +121,9 @@ def header_html() -> str:
 
     links = a("/", "Home", "m")
     for k, (s, n, _) in enumerate(GUIDES):
-        links += a(f"/{s}/", n, "" if k < 4 else "m")
+        links += a(f"/{s}/", n, "" if k < 3 else "m")
     links += a("/articles/", "Guides")
+    links += a("/contact/", "Contact")
     links += f'<a class="btn m m-btn" href="{play("article_menu")}" rel="noopener">Install app</a>'
     return (
         f'<header class="top"><div class="wrap bar"><a class="brand" href="/"><img src="/logo-96.png" width="44" height="44" alt="{NAME} logo">{NAME}</a>'
@@ -136,7 +137,7 @@ def header_html() -> str:
 def footer_html() -> str:
     links = "".join(f'<a href="/{s}/">{n}</a>' for s, n, _ in GUIDES)
     return (
-        f'<footer><div class="wrap"><div class="cols">{links}<a href="/articles/">Articles</a>'
+        f'<footer><div class="wrap"><div class="cols">{links}<a href="/articles/">Articles</a><a href="/contact/">Contact</a>'
         '<a href="/static/privacy-policy.html">Privacy policy</a></div>'
         f"<p>© {NAME}. Scholarship information is gathered from official sources and can change. "
         "Always confirm eligibility and deadlines on the funder's website. Not affiliated with any scholarship provider.</p></div></footer>"

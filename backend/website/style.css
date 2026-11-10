@@ -23,7 +23,7 @@ header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;backgroun
 .bar{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:60px}
 .brand{font:600 1.15rem var(--font-d);color:var(--ink);text-decoration:none;display:flex;align-items:center;gap:10px}
 .brand img{width:44px;height:44px;border-radius:10px;display:block}
-nav.main{display:flex;gap:20px;font-size:.95rem}
+nav.main{display:flex;gap:20px;font-size:.95rem;white-space:nowrap}
 nav.main a{color:var(--soft);text-decoration:none;font:600 .95rem var(--font-b)}
 nav.main a:hover{color:var(--blue-d)}
 .btn{display:inline-flex;align-items:center;gap:10px;background:var(--coral);color:#fff;text-decoration:none;font:600 1rem var(--font-d);padding:13px 22px;border-radius:12px;border:0;cursor:pointer;min-height:48px}
@@ -124,7 +124,7 @@ details.mm{background:none;border:0;padding:0;margin:0;border-radius:0}
 .burger[aria-expanded="true"] span:nth-child(3){transform:translateY(-7.5px) rotate(-45deg)}
 .burger:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
 nav.main .m{display:none}
-@media(max-width:980px){
+@media(max-width:1080px){
   .burger{display:flex}
   nav.main{display:none;position:absolute;left:0;right:0;top:100%;flex-direction:column;gap:0;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:0 14px 24px rgba(11,58,94,.12);padding:8px max(16px,env(safe-area-inset-left,0px)) 18px;max-height:calc(100vh - 70px);overflow-y:auto}
   nav.main.open{display:flex}
@@ -133,5 +133,15 @@ nav.main .m{display:none}
   nav.main a.m-btn{margin-top:14px;border:0;text-align:center;color:#fff;font:600 1rem var(--font-d);padding:14px}
 }
 @media(max-width:560px){.bar-r .btn{display:none}.brand{font-size:1.02rem}}
-@media(min-width:561px) and (max-width:980px){nav.main a.m-btn{display:none}}
+@media(min-width:561px) and (max-width:1080px){nav.main a.m-btn{display:none}}
 @media(prefers-reduced-motion:reduce){.burger span{transition:none}}
+
+/* Contact page */
+.mail-card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:24px;display:flex;flex-direction:column;gap:14px;align-items:flex-start;max-width:42em;margin:22px 0}
+.mail-card .addr{font:600 clamp(1.15rem,3.6vw,1.6rem) var(--font-d);word-break:break-all;color:var(--ink)}
+.topics{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin:8px 0 26px}
+.topics a{display:block;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;text-decoration:none;color:var(--ink)}
+.topics a:hover{border-color:var(--blue)}
+.topics b{display:block;font:600 1rem var(--font-d);margin-bottom:4px}
+.topics span{font-size:.92rem;color:var(--soft)}
+.copied{font:600 .88rem var(--font-b);color:var(--blue-d);min-height:1.2em}
