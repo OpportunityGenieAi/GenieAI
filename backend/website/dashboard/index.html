@@ -4,7 +4,7 @@
 <meta name="robots" content="noindex,nofollow">
 <link rel="icon" href="/favicon.ico" sizes="any"><link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@600&family=Open+Sans:wght@400;600&display=swap">
-<link rel="stylesheet" href="/style.css">
+<link rel="stylesheet" href="/style.css?v=1794484096">
 <style>
 /* Dashboard layout: article list on the left, editor on the right; stacks on phones. */
 .dtop{background:var(--surface);border-bottom:1px solid var(--line)}
@@ -36,6 +36,9 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:3px soli
 .msg.err{color:var(--coral)}.msg.ok{color:var(--blue-d)}
 #login{max-width:420px;margin:12vh auto;padding-inline:16px}
 .preview{margin-top:18px;border-top:2px dashed var(--line);padding-top:16px}
+.pic{border:1px dashed var(--line);border-radius:12px;padding:12px;display:grid;gap:10px}
+.pic img{width:100%;max-height:260px;object-fit:cover;border-radius:10px}
+input[type=file]:focus-visible+*,#picFile:focus-visible{outline:3px solid var(--blue)}
 .btn[disabled]{opacity:.55;cursor:default}
 details.help{margin-top:14px}
 code{background:var(--tint);padding:1px 5px;border-radius:5px;font-size:.88em}
@@ -61,6 +64,12 @@ code{background:var(--tint);padding:1px 5px;border-radius:5px;font-size:.88em}
     <label for="keyword">Main keyword (for you)</label><input type="text" id="keyword" maxlength="120" placeholder="fully funded scholarships">
     <label for="description">Google description <span class="hint" id="dc" style="display:inline">0/160</span></label>
     <textarea id="description" maxlength="320" style="min-height:70px" placeholder="One or two sentences that tell people what they will learn. Aim for 120 to 160 characters."></textarea>
+    <label>Main picture <span class="hint" style="display:inline">(shown above the introduction)</span></label>
+    <div class="pic" id="pic">
+      <img id="picImg" alt="" hidden>
+      <div class="row"><label class="mini" for="picFile" style="margin:0;display:inline-block">Choose picture</label><input type="file" id="picFile" accept="image/jpeg,image/png,image/webp" style="position:absolute;opacity:0;width:1px;height:1px"><button type="button" class="mini del" id="picDel" hidden>Remove picture</button><span class="hint" id="picInfo" style="margin:0">Best: a landscape picture, about 1200 × 630.</span></div>
+      <input type="text" id="picAlt" maxlength="200" placeholder="Describe the picture in a few words (helps Google and screen readers)" aria-label="Picture description" hidden>
+    </div>
     <label for="lead">Intro under the title</label><textarea id="lead" maxlength="600" style="min-height:70px"></textarea>
     <label for="body">Article text</label>
     <div class="tools" role="toolbar" aria-label="Formatting">
@@ -74,14 +83,14 @@ code{background:var(--tint);padding:1px 5px;border-radius:5px;font-size:.88em}
     <label for="status">Status</label>
     <select id="status"><option value="draft">Draft (hidden from the website)</option><option value="published">Published (visible on the website)</option></select>
     <div class="row" style="margin-top:20px"><button class="btn" id="save" type="button">Save</button><button class="btn ghost" id="prev" type="button">Preview</button><a class="mini" id="live" href="#" target="_blank" rel="noopener" hidden>Open live page</a><button class="mini del" id="del" type="button" hidden>Delete</button></div>
-    <div class="preview" id="pv" hidden><article><h1 id="pvTitle"></h1><p class="lead" id="pvLead"></p><div id="pvBody"></div></article></div>
+    <div class="preview" id="pv" hidden><article><h1 id="pvTitle"></h1><figure class="hero-img" id="pvFig" hidden><img id="pvImg" alt=""></figure><p class="lead" id="pvLead"></p><div id="pvBody"></div></article></div>
   </main>
 </div></div></div>
 
 <script>
 (function(){
 var $=function(i){return document.getElementById(i)};
-var KEY='',cur=null,slugTouched=false;
+var KEY='',cur=null,slugTouched=false,pend=null,removeImg=false,hasImg=false,altChanged=false;
 try{KEY=sessionStorage.getItem('og_key')||''}catch(e){}
 function api(method,path,body){
   return fetch(path,{method:method,headers:{'Content-Type':'application/json','X-Admin-Key':KEY},body:body?JSON.stringify(body):undefined}).then(function(r){
@@ -111,12 +120,33 @@ function faqRow(q,a){
   var x=document.createElement('button');x.type='button';x.className='mini del';x.textContent='Remove';x.style.justifySelf='start';x.onclick=function(){d.remove()};
   d.appendChild(i);d.appendChild(t);d.appendChild(x);$('faq').appendChild(d)}
 $('addfaq').onclick=function(){faqRow()};
+
+function showPic(src){var im=$('picImg');if(src){im.src=src;im.hidden=false;$('picDel').hidden=false;$('picAlt').hidden=false;hasImg=true}else{im.removeAttribute('src');im.hidden=true;$('picDel').hidden=true;$('picAlt').hidden=true;$('picAlt').value='';hasImg=false}}
+function shrink(file){
+  return new Promise(function(res,rej){
+    var url=URL.createObjectURL(file),img=new Image();
+    img.onload=function(){
+      var W=1600,w=img.naturalWidth,h=img.naturalHeight,s=Math.min(1,W/w),cw=Math.round(w*s),ch=Math.round(h*s),cv=document.createElement('canvas');
+      cv.width=cw;cv.height=ch;cv.getContext('2d').drawImage(img,0,0,cw,ch);URL.revokeObjectURL(url);
+      var q=.85,type='image/webp',out=cv.toDataURL(type,q);
+      if(out.indexOf('data:image/webp')!==0){type='image/jpeg';out=cv.toDataURL(type,q)}
+      while(out.length>1900000&&q>.4){q-=.1;out=cv.toDataURL(type,q)}
+      if(out.length>2000000){rej(new Error('That picture is too large. Choose a smaller one.'));return}
+      res({url:out,data:out.split(',')[1],width:cw,height:ch})};
+    img.onerror=function(){URL.revokeObjectURL(url);rej(new Error('That file is not a picture.'))};img.src=url})}
+$('picFile').addEventListener('change',function(){
+  var f=this.files&&this.files[0];if(!f)return;say('Preparing picture…');
+  shrink(f).then(function(r){pend=r;removeImg=false;showPic(r.url);$('picInfo').textContent='New picture ready. Click Save to publish it ('+Math.round(r.data.length*0.75/1024)+' KB).';say('')}).catch(function(e){say(e.message,'err')});this.value=''});
+$('picDel').onclick=function(){pend=null;removeImg=true;showPic(null);$('picInfo').textContent='Picture will be removed when you click Save.'};
+$('picAlt').addEventListener('input',function(){altChanged=true});
 function fill(a){
   cur=a&&a.id?a:null;a=a||{};
   $('heading').textContent=cur?'Edit article':'New article';
   $('title').value=a.title||'';$('slug').value=a.slug||'';$('keyword').value=a.keyword||'';$('description').value=a.description||'';$('lead').value=a.lead||'';$('body').value=a.body||'';
   $('status').value=a.status||'draft';$('faq').textContent='';(a.faq||[]).forEach(function(f){faqRow(f.q,f.a)});
   slugTouched=!!cur;upd();$('pv').hidden=true;say('');
+  pend=null;removeImg=false;altChanged=false;$('picInfo').textContent='Best: a landscape picture, about 1200 × 630.';
+  if(a.image&&cur){showPic('/article-image/'+cur.id+'?v='+a.image.v);$('picAlt').value=a.image.alt||''}else showPic(null);
   $('del').hidden=!cur;$('live').hidden=!(cur&&cur.status==='published');if(cur){$('live').href='/articles/'+cur.slug+'/'}
 }
 function upd(){$('slugShow').textContent=$('slug').value||'…';$('dc').textContent=$('description').value.length+'/160'}
@@ -130,13 +160,19 @@ function payload(){
 $('save').onclick=function(){
   var p=payload();if(p.title.length<3){say('Add a title first.','err');return}
   $('save').disabled=true;say('Saving…');
-  api(cur?'PUT':'POST',cur?'/admin-api/articles/'+cur.id:'/admin-api/articles',p).then(function(a){fill(a);say(a.status==='published'?'Saved and live on the website ✓':'Saved as draft ✓','ok');loadList()}).catch(function(e){say(e.message,'err')}).then(function(){$('save').disabled=false})};
+  var alt=$('picAlt').value.trim(),np=pend,rm=removeImg,ac=altChanged,had=hasImg;
+  api(cur?'PUT':'POST',cur?'/admin-api/articles/'+cur.id:'/admin-api/articles',p).then(function(a){
+    var id=a.id;
+    if(np)return api('PUT','/admin-api/articles/'+id+'/image',{data:np.data,alt:alt,width:np.width,height:np.height}).then(function(){return id});
+    if(rm&&cur&&a.image)return api('DELETE','/admin-api/articles/'+id+'/image').then(function(){return id});
+    if(ac&&had&&a.image)return api('PUT','/admin-api/articles/'+id+'/image-alt',{alt:alt}).then(function(){return id});
+    return id}).then(function(id){return api('GET','/admin-api/articles/'+id)}).then(function(a){fill(a);say(a.status==='published'?'Saved and live on the website ✓':'Saved as draft ✓','ok');loadList()}).catch(function(e){say(e.message,'err')}).then(function(){$('save').disabled=false})};
 $('del').onclick=function(){
   if(!cur||!confirm('Delete this article permanently?'))return;
   api('DELETE','/admin-api/articles/'+cur.id).then(function(){fill(null);loadList();say('Deleted','ok')}).catch(function(e){say(e.message,'err')})};
 $('prev').onclick=function(){
   api('POST','/admin-api/articles/preview',{body:$('body').value}).then(function(r){
-    $('pvTitle').textContent=$('title').value;$('pvLead').textContent=$('lead').value;$('pvBody').innerHTML=r.html;$('pv').hidden=false;$('pv').scrollIntoView({behavior:'smooth'})}).catch(function(e){say(e.message,'err')})};
+    $('pvTitle').textContent=$('title').value;var ps=$('picImg').getAttribute('src');$('pvFig').hidden=!ps;if(ps)$('pvImg').src=ps;$('pvLead').textContent=$('lead').value;$('pvBody').innerHTML=r.html;$('pv').hidden=false;$('pv').scrollIntoView({behavior:'smooth'})}).catch(function(e){say(e.message,'err')})};
 var T={h2:['\n## ','Heading','\n'],h3:['\n### ','Sub-heading','\n'],bold:['**','bold text','**'],ul:['\n- ','List item','\n- Next item\n'],ol:['\n1. ','First step','\n2. Second step\n'],link:['[','link text','](https://)'],note:['\n> ','Important tip','\n'],cta:['\n\n[[install]]\n\n','','']};
 [].forEach.call(document.querySelectorAll('[data-ins]'),function(b){b.onclick=function(){
   var t=$('body'),s=t.selectionStart,e=t.selectionEnd,v=T[b.dataset.ins],sel=t.value.slice(s,e)||v[1];

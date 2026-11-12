@@ -1,4 +1,5 @@
 """Website articles: public pages + a private API used by /dashboard."""
+import base64
 import hmac
 import os
 import re
@@ -12,7 +13,7 @@ from fastapi.responses import FileResponse, HTMLResponse, Response
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
-from app.article_model import Article
+from app.article_model import Article, ArticleImage
 from app.database import get_db
 from app.services import article_render as R
 
@@ -55,8 +56,15 @@ def _iso(d):
     return d.strftime("%Y-%m-%dT%H:%M:%SZ") if d else None
 
 
-def _out(a: Article) -> dict:
-    return {
+def _image_info(db: Session, article_id: str):
+    im = db.query(ArticleImage).filter(ArticleImage.article_id == article_id).first()
+    if not im:
+        return None
+    return {"alt": im.alt or "", "w": im.width or 0, "h": im.height or 0, "v": int(im.updated_at.timestamp()) if im.updated_at else 0}
+
+
+def _out(a: Article, db: Session) -> dict:
+    return {"image": _image_info(db, a.id),
         "id": a.id, "slug": a.slug, "title": a.title, "description": a.description or "", "keyword": a.keyword or "",
         "lead": a.lead or "", "body": a.body or "", "faq": a.faq or [], "status": a.status,
         "published_at": _iso(a.published_at), "updated_at": _iso(a.updated_at),
@@ -96,7 +104,7 @@ def admin_create(p: ArticleIn, db: Session = Depends(get_db)):
     db.add(a)
     db.commit()
     db.refresh(a)
-    return _out(a)
+    return _out(a, db)
 
 
 @router.post("/admin-api/articles/preview", dependencies=[Depends(require_key)])
@@ -109,7 +117,7 @@ def admin_get(article_id: str, db: Session = Depends(get_db)):
     a = db.query(Article).filter(Article.id == article_id).first()
     if not a:
         raise HTTPException(404, "Article not found")
-    return _out(a)
+    return _out(a, db)
 
 
 @router.put("/admin-api/articles/{article_id}", dependencies=[Depends(require_key)])
@@ -120,7 +128,7 @@ def admin_update(article_id: str, p: ArticleIn, db: Session = Depends(get_db)):
     _apply(a, p, db)
     db.commit()
     db.refresh(a)
-    return _out(a)
+    return _out(a, db)
 
 
 @router.delete("/admin-api/articles/{article_id}", dependencies=[Depends(require_key)])
@@ -128,9 +136,82 @@ def admin_delete(article_id: str, db: Session = Depends(get_db)):
     a = db.query(Article).filter(Article.id == article_id).first()
     if not a:
         raise HTTPException(404, "Article not found")
+    db.query(ArticleImage).filter(ArticleImage.article_id == a.id).delete()
     db.delete(a)
     db.commit()
     return {"ok": True}
+
+
+# ---------- main picture ----------
+MAX_IMAGE_BYTES = 1_500_000
+
+
+class ImageIn(BaseModel):
+    data: str = Field(max_length=2_200_000)   # base64, without the "data:" prefix
+    alt: str = Field(default="", max_length=200)
+    width: int = Field(default=0, ge=0, le=6000)
+    height: int = Field(default=0, ge=0, le=6000)
+
+
+class AltIn(BaseModel):
+    alt: str = Field(default="", max_length=200)
+
+
+def _sniff(raw: bytes):
+    if raw.startswith(b"\xff\xd8\xff"):
+        return "image/jpeg"
+    if raw.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "image/png"
+    if raw[:4] == b"RIFF" and raw[8:12] == b"WEBP":
+        return "image/webp"
+    return None
+
+
+@router.put("/admin-api/articles/{article_id}/image", dependencies=[Depends(require_key)])
+def admin_set_image(article_id: str, p: ImageIn, db: Session = Depends(get_db)):
+    a = db.query(Article).filter(Article.id == article_id).first()
+    if not a:
+        raise HTTPException(404, "Article not found")
+    try:
+        raw = base64.b64decode(p.data, validate=True)
+    except Exception:
+        raise HTTPException(422, "The picture could not be read")
+    if len(raw) > MAX_IMAGE_BYTES:
+        raise HTTPException(413, "Picture is too large (limit 1.5 MB)")
+    ctype = _sniff(raw)
+    if not ctype:
+        raise HTTPException(422, "Use a JPG, PNG or WebP picture")
+    im = db.query(ArticleImage).filter(ArticleImage.article_id == a.id).first() or ArticleImage(article_id=a.id)
+    im.content_type, im.data, im.alt, im.width, im.height = ctype, raw, p.alt.strip(), p.width, p.height
+    im.updated_at = datetime.utcnow()
+    db.add(im)
+    db.commit()
+    return _out(a, db)
+
+
+@router.put("/admin-api/articles/{article_id}/image-alt", dependencies=[Depends(require_key)])
+def admin_set_alt(article_id: str, p: AltIn, db: Session = Depends(get_db)):
+    im = db.query(ArticleImage).filter(ArticleImage.article_id == article_id).first()
+    if not im:
+        raise HTTPException(404, "This article has no picture")
+    im.alt = p.alt.strip()
+    db.commit()
+    return {"ok": True}
+
+
+@router.delete("/admin-api/articles/{article_id}/image", dependencies=[Depends(require_key)])
+def admin_delete_image(article_id: str, db: Session = Depends(get_db)):
+    db.query(ArticleImage).filter(ArticleImage.article_id == article_id).delete()
+    db.commit()
+    return {"ok": True}
+
+
+@router.get("/article-image/{article_id}", include_in_schema=False)
+def article_image(article_id: str, db: Session = Depends(get_db)):
+    im = db.query(ArticleImage).filter(ArticleImage.article_id == article_id).first()
+    if not im:
+        raise HTTPException(404, "Not found")
+    return Response(bytes(im.data), media_type=im.content_type, headers={"Cache-Control": "public, max-age=604800"})
 
 
 # ---------- public pages ----------
@@ -152,7 +233,7 @@ def articles_index(db: Session = Depends(get_db)):
 def article_view(slug: str, db: Session = Depends(get_db)):
     a = db.query(Article).filter(Article.slug == slug, Article.status == "published").first()
     if a:
-        return HTMLResponse(R.article_page(_out(a)), headers=CACHE)
+        return HTMLResponse(R.article_page(_out(a, db)), headers=CACHE)
     if SLUG_RE.match(slug):
         f = WEBSITE_DIR / "articles" / slug / "index.html"
         if f.is_file():

@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import Column, DateTime, JSON, String, Text
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, JSON, LargeBinary, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 
 from app.database import Base
@@ -23,4 +23,19 @@ class Article(Base):
     status = Column(String, default="draft", index=True)  # draft | published
     published_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class ArticleImage(Base):
+    """The main picture shown above an article's introduction (one per article)."""
+
+    __tablename__ = "article_images"
+
+    id = Column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
+    article_id = Column(UUID(as_uuid=False), ForeignKey("articles.id", ondelete="CASCADE"), unique=True, index=True, nullable=False)
+    content_type = Column(String, nullable=False)
+    data = Column(LargeBinary, nullable=False)
+    alt = Column(String, default="")
+    width = Column(Integer, default=0)
+    height = Column(Integer, default=0)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

@@ -3,10 +3,16 @@ import html
 import json
 import os
 import re
+from pathlib import Path
 
 BASE = os.environ.get("SITE_URL", "https://opportunitygenie.org").rstrip("/")
 PLAY = "https://play.google.com/store/apps/details?id=opportunitygenie.org"
 NAME = "OpportunityGenie AI"
+
+try:  # changes on every deploy, so browsers always fetch the newest stylesheet
+    CSS_VER = str(int((Path(__file__).resolve().parent.parent.parent / "website" / "style.css").stat().st_mtime))
+except OSError:
+    CSS_VER = "1"
 
 GUIDES = [
     ("fully-funded-scholarships", "Fully funded", "Fully funded scholarships for international students"),
@@ -144,8 +150,9 @@ def footer_html() -> str:
     )
 
 
-def shell(title: str, desc: str, path: str, body: str, ld: str = "", noindex: bool = False) -> str:
+def shell(title: str, desc: str, path: str, body: str, ld: str = "", noindex: bool = False, image: str = "") -> str:
     t, d = html.escape(title), html.escape(desc, quote=True)
+    og_img = html.escape(image or (BASE + "/logo-512.png"), quote=True)
     robots = "noindex,nofollow" if noindex else "index,follow,max-image-preview:large"
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
@@ -153,12 +160,12 @@ def shell(title: str, desc: str, path: str, body: str, ld: str = "", noindex: bo
 <meta name="description" content="{d}">
 <meta name="robots" content="{robots}">
 <link rel="canonical" href="{BASE}{path}">
-<meta property="og:type" content="article"><meta property="og:title" content="{t}"><meta property="og:description" content="{d}"><meta property="og:url" content="{BASE}{path}"><meta property="og:site_name" content="{NAME}"><meta property="og:image" content="{BASE}/logo-512.png">
-<meta name="twitter:card" content="summary"><meta name="theme-color" content="#0071BB">
+<meta property="og:type" content="article"><meta property="og:title" content="{t}"><meta property="og:description" content="{d}"><meta property="og:url" content="{BASE}{path}"><meta property="og:site_name" content="{NAME}"><meta property="og:image" content="{og_img}">
+<meta name="twitter:card" content="{"summary_large_image" if image else "summary"}"><meta name="theme-color" content="#0071BB">
 <link rel="icon" href="/favicon.ico" sizes="any"><link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png"><link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@600&family=Open+Sans:wght@400;600&display=swap">
-<link rel="stylesheet" href="/style.css">
+<link rel="stylesheet" href="/style.css?v={CSS_VER}">
 {ld}</head><body>
 {header_html()}{body}{footer_html()}
 </body></html>
@@ -183,22 +190,28 @@ def article_page(a: dict) -> str:
             f"<details><summary>{html.escape(f['q'])}</summary><p>{html.escape(f['a'])}</p></details>" for f in faq
         )
     related = "".join(f'<li><a href="/{s}/">{html.escape(t)}</a></li>' for s, _, t in GUIDES)
+    img = a.get("image")
+    img_url = f"{BASE}/article-image/{a['id']}?v={img['v']}" if img and a.get("id") else ""
+    fig = ""
+    if img_url:
+        dims = f' width="{img["w"]}" height="{img["h"]}"' if img.get("w") and img.get("h") else ""
+        fig = f'<figure class="hero-img"><img src="/article-image/{a["id"]}?v={img["v"]}"{dims} alt="{html.escape(img.get("alt") or a["title"], quote=True)}" fetchpriority="high"></figure>'
     lead = f'<p class="lead">{html.escape(a.get("lead") or "")}</p>' if a.get("lead") else ""
     body = (
         f'<main class="wrap page"><article><div class="crumbs"><a href="/">Home</a> / <a href="/articles/">Articles</a> / {html.escape(a["title"])}</div>'
-        f'<h1>{html.escape(a["title"])}</h1>{lead}{md_to_html(a.get("body") or "", "art_" + slug[:30])}{faq_html}'
+        f'<h1>{html.escape(a["title"])}</h1>{fig}{lead}{md_to_html(a.get("body") or "", "art_" + slug[:30])}{faq_html}'
         f'<div class="related"><h2>More guides</h2><ul>{related}</ul></div></article>{_side("art_" + slug[:30] + "_side")}</main>'
     )
     ld = _ld({
         "@context": "https://schema.org", "@type": "Article", "headline": a["title"],
         "description": a.get("description") or "", "mainEntityOfPage": BASE + path,
         "datePublished": a.get("published_at") or "", "dateModified": a.get("updated_at") or "",
-        "image": BASE + "/logo-512.png", "publisher": {"@type": "Organization", "name": NAME, "logo": {"@type": "ImageObject", "url": BASE + "/logo-512.png"}},
+        "image": img_url or (BASE + "/logo-512.png"), "publisher": {"@type": "Organization", "name": NAME, "logo": {"@type": "ImageObject", "url": BASE + "/logo-512.png"}},
     })
     if faq:
         ld += _ld({"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [
             {"@type": "Question", "name": f["q"], "acceptedAnswer": {"@type": "Answer", "text": f["a"]}} for f in faq]})
-    return shell(f"{a['title']} | {NAME}", a.get("description") or a["title"], path, body, ld)
+    return shell(f"{a['title']} | {NAME}", a.get("description") or a["title"], path, body, ld, image=img_url)
 
 
 def index_page(items: list) -> str:

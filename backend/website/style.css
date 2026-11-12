@@ -145,3 +145,9 @@ nav.main .m{display:none}
 .topics b{display:block;font:600 1rem var(--font-d);margin-bottom:4px}
 .topics span{font-size:.92rem;color:var(--soft)}
 .copied{font:600 .88rem var(--font-b);color:var(--blue-d);min-height:1.2em}
+
+/* Article main picture */
+.hero-img{margin:0 0 24px}
+.hero-img img{display:block;width:100%;height:auto;max-height:520px;object-fit:cover;border-radius:14px;border:1px solid var(--line);background:var(--tint)}
+.topics a b{display:block}
+.topics a span{display:block}
