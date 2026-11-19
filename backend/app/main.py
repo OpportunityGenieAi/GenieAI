@@ -15,6 +15,8 @@ from app import article_model  # noqa: F401  (registers the articles table)
 from app.routers import settings as settings_router
 from app.routers import subscription
 from app.seed_data import SEED_SCHOLARSHIPS
+from app.services.schema_patch import ensure_columns  # noqa: E402
+ensure_columns()
 
 app = FastAPI(title=settings.APP_NAME, version="0.1.0")
 

@@ -69,6 +69,7 @@ class ScholarshipIn(BaseModel):
     level: str
     field: str = "All fields"
     funding: str = "Fully-funded"
+    funding_amount: Optional[str] = None
     deadline_window: str
     official_link: str
     tags: list[str] = []

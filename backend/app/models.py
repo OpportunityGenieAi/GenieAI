@@ -55,6 +55,7 @@ class Scholarship(Base):
     level = Column(String, nullable=False)
     field = Column(String, default="All fields")
     funding = Column(String, default="Fully-funded")
+    funding_amount = Column(String, nullable=True)  # e.g. "€1,300/month"
     deadline_window = Column(String, nullable=False)
     official_link = Column(String, nullable=False)
     tags = Column(JSON, default=list)
