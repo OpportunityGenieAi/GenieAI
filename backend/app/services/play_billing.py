@@ -123,12 +123,17 @@ def is_entitled(row: PlaySubscription) -> bool:
     return bool(row.state in ENTITLED_STATES and row.expires_at and row.expires_at > datetime.utcnow())
 
 
+def allowed_product_ids() -> set:
+    """Both plans (monthly and yearly) unlock Premium."""
+    return {p for p in (settings.GOOGLE_PLAY_PRODUCT_ID, settings.GOOGLE_PLAY_ANNUAL_PRODUCT_ID) if p}
+
+
 def apply_subscription(
     db: Session, token: str, data: dict, user_id: Optional[str] = None
 ) -> Optional[PlaySubscription]:
     """Saves what Google says about this purchase. Returns None if it can't be tied to an account."""
     items = data.get("lineItems") or []
-    item = next((i for i in items if i.get("productId") == settings.GOOGLE_PLAY_PRODUCT_ID), None)
+    item = next((i for i in items if i.get("productId") in allowed_product_ids()), None)
     if item is None:
         raise PlayBillingError("That purchase is for a different product.", 400)
 
@@ -143,13 +148,14 @@ def apply_subscription(
             logger.warning("Play purchase could not be linked to an account")
             return None
         row = PlaySubscription(
-            user_id=link_to, purchase_token=token, product_id=settings.GOOGLE_PLAY_PRODUCT_ID, state=""
+            user_id=link_to, purchase_token=token, product_id=item.get("productId"), state=""
         )
         db.add(row)
     elif user_id and str(row.user_id) != user_id:
         raise PlayBillingError("This subscription is already linked to another account.", 409)
 
     row.state = data.get("subscriptionState") or ""
+    row.product_id = item.get("productId") or row.product_id
     row.expires_at = _parse_time(item.get("expiryTime"))
     row.auto_renewing = bool((item.get("autoRenewingPlan") or {}).get("autoRenewEnabled"))
     row.is_test = "testPurchase" in data
@@ -164,7 +170,7 @@ def apply_subscription(
     db.commit()
 
     if is_entitled(row) and data.get("acknowledgementState") == "ACKNOWLEDGEMENT_STATE_PENDING":
-        _acknowledge(settings.GOOGLE_PLAY_PRODUCT_ID, token)
+        _acknowledge(item.get("productId"), token)
     return row
 
 

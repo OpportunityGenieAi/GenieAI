@@ -41,6 +41,7 @@ class Settings(BaseSettings):
     # --- Google Play subscriptions (Premium) ---
     GOOGLE_PLAY_PACKAGE_NAME: str = "opportunitygenie.org"
     GOOGLE_PLAY_PRODUCT_ID: str = "premium_monthly"
+    GOOGLE_PLAY_ANNUAL_PRODUCT_ID: str = "premium_annual"
     GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: str = ""  # the whole service-account key, as one line
     PLAY_RTDN_SECRET: str = ""                  # random string used in the Pub/Sub push URL
     PREMIUM_GATING_STARTS_AT: str = ""          # e.g. 2026-12-01 (UTC); empty = Premium not enforced yet
