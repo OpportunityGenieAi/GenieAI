@@ -1,0 +1,121 @@
+from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse, PlainTextResponse
+from sqlalchemy import text
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+
+from app.config import settings
+from app.database import Base, SessionLocal, engine
+from app.models import Scholarship
+from app.routers import advisor, auth, profile, scholarships, share, tracker
+from app.routers import notifications
+from app.routers import articles
+from app import article_model  # noqa: F401  (registers the articles table)
+from app.routers import settings as settings_router
+from app.routers import subscription
+from app.seed_data import SEED_SCHOLARSHIPS
+from app.services.schema_patch import ensure_columns  # noqa: E402
+ensure_columns()
+
+app = FastAPI(title=settings.APP_NAME, version="0.1.0")
+
+
+def _validation_message(errors) -> str:
+    parts = []
+    for e in errors:
+        loc = [str(x) for x in e.get("loc", []) if x != "body"]
+        msg = e.get("msg", "invalid value")
+        parts.append(f"{'.'.join(loc)}: {msg}" if loc else msg)
+    return "; ".join(parts)[:300]
+
+
+@app.exception_handler(RequestValidationError)
+async def on_validation_error(request: Request, exc: RequestValidationError):
+    message = _validation_message(exc.errors())
+    print(f"[422] {request.method} {request.url.path} -> {message}")  # no user content is logged
+    return JSONResponse(status_code=422, content={"detail": message})
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.allowed_origins_list,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+    )
+
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
+
+app.include_router(auth.router)
+app.include_router(scholarships.router)
+app.include_router(profile.router)
+app.include_router(tracker.router)
+app.include_router(advisor.router)
+app.include_router(settings_router.router)
+app.include_router(share.router)
+app.include_router(subscription.router)
+app.include_router(notifications.router)
+app.include_router(articles.router)
+
+
+@app.on_event("startup")
+def on_startup():
+    Base.metadata.create_all(bind=engine)
+    # Supabase now owns passwords, so the old credential columns must allow NULL.
+    # create_all() never alters existing tables, hence this idempotent step.
+    try:
+        with engine.begin() as conn:
+            for col in ("password_hash", "security_question", "security_answer_hash"):
+                conn.execute(text(f"ALTER TABLE users ALTER COLUMN {col} DROP NOT NULL"))
+    except Exception as exc:  # non-Postgres or table not ready; safe to skip
+        print(f"[startup] skipped users column relax: {exc}")
+
+    # Add catalog columns to the existing scholarships table (idempotent, Postgres).
+    for ddl in (
+        "ALTER TABLE scholarships ADD COLUMN IF NOT EXISTS source_url VARCHAR",
+        "ALTER TABLE scholarships ADD COLUMN IF NOT EXISTS deadline_date DATE",
+        "ALTER TABLE scholarships ADD COLUMN IF NOT EXISTS last_verified DATE",
+        "ALTER TABLE scholarships ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE",
+    ):
+        try:
+            with engine.begin() as conn:
+                conn.execute(text(ddl))
+        except Exception as exc:
+            print(f"[startup] skipped scholarships column add: {exc}")
+    db = SessionLocal()
+    try:
+        if db.query(Scholarship).count() == 0:
+            db.bulk_insert_mappings(Scholarship, SEED_SCHOLARSHIPS)
+            db.commit()
+    finally:
+        db.close()
+
+    # Load curated scholarship batches from app/data/*.csv (idempotent)
+    try:
+        from app.services.catalog_import import import_catalog
+        db = SessionLocal()
+        try:
+            import_catalog(db)
+        finally:
+            db.close()
+    except Exception as exc:  # a bad CSV must never stop the API booting
+        print(f"[catalog] import skipped: {exc}")
+
+
+@app.get("/app-ads.txt", response_class=PlainTextResponse)
+def app_ads_txt():
+    # Authorised digital sellers file for AdMob verification.
+    return "google.com, pub-9273621287213519, DIRECT, f08c47fec0942fa0\n"
+
+
+@app.get("/health")
+def health():
+    return {"status": "ok", "app": settings.APP_NAME, "environment": settings.ENVIRONMENT}
+
+
+# --- SEO website (served last so every API route above takes priority) ---
+from pathlib import Path as _Path
+
+_WEBSITE_DIR = _Path(__file__).resolve().parent.parent / "website"
+if _WEBSITE_DIR.is_dir():
+    app.mount("/", StaticFiles(directory=str(_WEBSITE_DIR), html=True), name="website")

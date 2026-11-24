@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex"><title>Attach your documents - OpportunityGenie</title>
+<style>
+:root{--blue:#1a56db;--ink:#14213d;--soft:#5b6b82;--line:#dfe5ee;--bg:#f4f7fb;--red:#c0392b;--green:#13795b}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+main{max-width:520px;margin:0 auto;padding:24px 18px 48px}
+h1{font-size:21px;margin:0 0 6px}p{margin:0 0 14px;color:var(--soft)}
+.card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px;margin-bottom:16px}
+.btn{display:block;width:100%;border:0;border-radius:12px;background:var(--blue);color:#fff;font:600 16px system-ui;padding:14px;text-align:center;cursor:pointer}
+.btn[disabled]{opacity:.5}
+.file{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
+.file:first-child{border-top:0}.name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.size{color:var(--soft);font-size:13px}.rm{background:none;border:0;color:var(--red);font:600 14px system-ui;cursor:pointer}
+#msg{min-height:22px;font-weight:600;margin:8px 0}.err{color:var(--red)}.ok{color:var(--green)}
+small{color:var(--soft)}
+</style></head><body><main>
+<h1>Attach your documents</h1>
+<p>Add your statement of purpose, motivation letter or anything else you would like reviewed in your consultation.</p>
+<div class="card">
+  <input id="pick" type="file" accept=".pdf,.doc,.docx,.txt,.rtf,.odt" hidden>
+  <button class="btn" id="add">Choose a document</button>
+  <div id="msg" role="status"></div>
+  <div id="list"></div>
+  <small>PDF, Word, TXT, RTF or ODT &middot; up to 5 MB each &middot; up to 3 files.</small>
+</div>
+<div class="card"><b>All done?</b><p style="margin:6px 0 0">Close this page and go back to the OpportunityGenie app. Tap <b>Refresh</b> next to your documents, then finish the form and press Confirm.</p></div>
+</main>
+<script>
+(function(){
+  var token=(location.hash||'').replace(/^#t=/,'');
+  var base=location.pathname.replace(/\/upload-page\/?$/,'');
+  var msg=document.getElementById('msg'),list=document.getElementById('list'),add=document.getElementById('add'),pick=document.getElementById('pick');
+  function say(t,c){msg.textContent=t||'';msg.className=c||''}
+  function fmt(n){return n>1048576?(n/1048576).toFixed(1)+' MB':Math.max(1,Math.round(n/1024))+' KB'}
+  function render(d){
+    list.innerHTML='';
+    (d.files||[]).forEach(function(f){
+      var r=document.createElement('div');r.className='file';
+      var l=document.createElement('div');l.style.minWidth='0';
+      var a=document.createElement('div');a.className='name';a.textContent=f.filename;
+      var b=document.createElement('div');b.className='size';b.textContent=fmt(f.size);
+      l.appendChild(a);l.appendChild(b);
+      var x=document.createElement('button');x.className='rm';x.textContent='Remove';
+      x.onclick=function(){call('DELETE','/'+f.id).then(render).catch(function(e){say(e.message,'err')})};
+      r.appendChild(l);r.appendChild(x);list.appendChild(r);
+    });
+    add.disabled=(d.files||[]).length>=3;
+  }
+  function call(method,extra,body){
+    return fetch(base+'/upload/'+encodeURIComponent(token)+(extra||''),{method:method,headers:{'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined})
+      .then(function(r){return r.json().catch(function(){return {}}).then(function(j){if(!r.ok)throw new Error(typeof j.detail==='string'?j.detail:'Something went wrong. Please try again.');return j})});
+  }
+  if(!token){say('This link is incomplete. Please open it again from the app.','err');add.disabled=true;return}
+  call('GET').then(render).catch(function(e){say(e.message,'err');add.disabled=true});
+  add.onclick=function(){pick.click()};
+  pick.onchange=function(){
+    var f=pick.files&&pick.files[0];pick.value='';if(!f)return;
+    if(f.size>5*1024*1024){say('That file is larger than 5 MB.','err');return}
+    say('Uploading…');add.disabled=true;
+    var rd=new FileReader();
+    rd.onload=function(){
+      call('POST','',{filename:f.name,data:String(rd.result).split(',')[1]||''})
+        .then(function(d){render(d);say('Uploaded ✓','ok')})
+        .catch(function(e){say(e.message,'err');add.disabled=false});
+    };
+    rd.onerror=function(){say('That file could not be read.','err');add.disabled=false};
+    rd.readAsDataURL(f);
+  };
+})();
+</script></body></html>
